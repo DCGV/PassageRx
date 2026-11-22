@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passage Rx</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: clinical, exact, calm — a tool a clinic trusts with a patient's money
+   IDEA: the pharmacy adjudication receipt — the answer printed line by line, stamped with who verified it
+   PICTURE: the receipt itself, patient-pays figure on a yellow slab, progress rail above it
+   COLOUR and TYPE: white, ink #101418, slate; yellow #ffd84a only behind the patient-pays figure; Manrope
+   LAYOUT: numbered intake steps left, receipt right; stacks intake → receipt below 980px */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#101418);--ink:light-dark(#101418,#eef1f4);--mute:light-dark(#5a6672,#9aa6b2);--line:light-dark(#e3e7eb,#2a323b);--panel:light-dark(#f5f7f9,#171d23);--y:#ffd84a;--ok:light-dark(#1f6b45,#6fd3a0);--okbg:light-dark(#e8f5ee,#12291e);--warn:light-dark(#8a4b00,#ffc27a);--warnbg:light-dark(#fff3e0,#2b2010);--bad:light-dark(#a3261b,#ff8f84);--badbg:light-dark(#fdecea,#2e1614);--acc:light-dark(#2f5bd3,#8fb0ff)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--panel);color:var(--ink);font:16px/1.55 Manrope,system-ui,sans-serif;overflow-x:clip}
+header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;justify-content:space-between;padding:12px max(4vw,16px);background:var(--bg);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:21px}
+.mark{width:30px;height:30px;border-radius:8px;background:var(--ink);display:grid;place-items:center}
+.brand small{color:var(--mute);font-weight:500;font-size:14px}
+nav{display:flex;flex-wrap:wrap;gap:4px;background:var(--panel);padding:4px;border-radius:10px}
+button,select,input{font:inherit;font-size:16px;color:inherit}
+.tab{min-height:40px;padding:0 14px;border:0;background:transparent;border-radius:8px;cursor:pointer;font-weight:600;color:var(--mute)}
+.tab[aria-selected=true]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.btn{min-height:44px;padding:0 16px;border:1px solid var(--line);background:var(--bg);border-radius:10px;cursor:pointer;font-weight:700}
+.btn.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.big{width:100%;min-height:52px;font-size:17px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.demo{color:var(--mute);font-size:13px;padding:8px max(4vw,16px);text-align:center}
+main{max-width:1280px;margin:0 auto;padding:8px max(4vw,16px) 64px}
+.grid{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:24px;align-items:start}
+@media(max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+h1{font-size:clamp(28px,4vw,38px);line-height:1.05;margin:10px 0 4px;text-wrap:balance}
+h2{font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:8px}h3{font-size:15px;margin:20px 0 8px}
+.sn{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:800;flex:none}
+.sn.ok{background:var(--ok);color:var(--bg)}
+.sub{color:var(--mute);margin:0 0 20px;max-width:72ch}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:14px}
+.step{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.done{font-size:13px;font-weight:700;color:var(--ok)}
+label.f{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+select,input[type=number],input[type=text]{width:100%;min-height:46px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+input[type=text]{text-transform:uppercase;letter-spacing:.04em}
+.hint{font-size:13px;color:var(--mute);margin-top:4px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media(max-width:460px){.pick{grid-template-columns:minmax(0,1fr)}}
+.pt{display:flex;gap:10px;align-items:center;text-align:left;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;min-height:56px}
+.pt[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-weight:800;font-size:12px;flex:none}
+.av.d{background:var(--warnbg);color:var(--warn)}
+.pt .av{display:grid}.pt b{display:block;font-size:14px;line-height:1.3}.pt span{font-size:12.5px;color:var(--mute);line-height:1.3;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--panel)}
+.sw{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.sw:first-of-type{border-top:0}
+.sw input{appearance:none;width:44px;height:26px;border-radius:999px;background:var(--line);position:relative;flex:none;cursor:pointer;transition:background .2s}
+.sw input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .2s}
+.sw input:checked{background:var(--ok)}.sw input:checked::after{left:21px}
+.sw input:disabled{opacity:.4}
+.sw b{display:block;font-size:14.5px}.sw small{display:block;color:var(--mute);font-size:13px;line-height:1.4}
+details.more summary{cursor:pointer;font-weight:700;font-size:14px;min-height:44px;display:flex;align-items:center;color:var(--acc)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--panel);padding:4px;border-radius:12px}
+.seg button{min-height:42px;border:0;border-radius:9px;background:transparent;font-weight:700;color:var(--mute);cursor:pointer;font-size:15px}
+.seg button[aria-pressed=true]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.dose{margin-top:10px;background:var(--panel);border-radius:10px;padding:10px 12px;font-size:14px}
+.dose b{display:block;font-size:12.5px;color:var(--mute);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.dose .hint{margin-top:6px}
+.srch{display:grid;grid-template-columns:minmax(0,1fr) 108px 88px;gap:8px;align-items:end}
+@media(max-width:420px){.srch{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.srch .btn{grid-column:1/-1}}
+.srch label.f{margin-top:0}
+.fl{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.fl label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:6px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;min-height:36px}
+.fl input{accent-color:var(--ink);width:16px;height:16px;margin:0}
+.phl{display:grid;gap:8px;margin-top:12px;max-height:440px;overflow:auto;padding-right:2px}
+.ph{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px}
+.ph[aria-current=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.ph .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.ph .top b{font-size:14.5px}
+.km{font-size:13px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ph .meta{font-size:12.5px;color:var(--mute)}
+.bdg{display:flex;flex-wrap:wrap;gap:4px}
+.bd{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--panel)}
+.bd.p{background:var(--okbg);color:var(--ok)}.bd.w{background:var(--warnbg);color:var(--warn)}
+.ph .btn{min-height:38px;font-size:14px;justify-self:start;padding:0 14px}
+.note{font-size:13px;border-radius:10px;padding:8px 10px;margin-top:10px}
+.note.w{background:var(--warnbg);color:var(--warn)}.note.m{background:var(--panel);color:var(--mute)}.note.b{background:var(--badbg);color:var(--bad)}
+.selph{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--panel);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+.selph b{display:block}.selph small{color:var(--mute);font-size:12.5px}
+.rail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:16px}
+.rs{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px}
+.rs b{display:block;font-size:14px}
+.rs.on{border-color:var(--ok);background:var(--okbg)}.rs.run{border-color:var(--acc)}.rs.no{border-style:dashed;color:var(--mute)}
+@media(max-width:520px){.rail{grid-template-columns:minmax(0,1fr)}}
+.stale{background:var(--warnbg);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:14px;font-weight:600;margin-bottom:12px}
+.rcpt{background:var(--bg);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 18px 40px -30px rgba(0,0,0,.5)}
+.rh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 12px;padding:16px 20px;border-bottom:1px dashed var(--line)}
+.rh b{font-size:17px}.rh span{color:var(--mute);font-size:14px}
+.rb{padding:20px}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:stretch}
+@media(max-width:620px){.hero{grid-template-columns:minmax(0,1fr)}}
+.fig{background:var(--y);color:#101418;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;justify-content:center}
+.fig .l{font-size:14px;font-weight:700}
+.fig .n{font-size:clamp(34px,5.5vw,50px);font-weight:800;line-height:1.05;white-space:nowrap;margin:4px 0}
+.fig .s{font-size:13px;font-weight:600}
+.fig .n.rg{font-size:clamp(24px,3.2vw,34px);white-space:normal}
+.fig.grey{background:var(--panel);color:var(--ink)}
+.status{border-radius:14px;padding:14px 16px;font-size:14.5px}
+.status b{display:block;font-size:16px;margin-bottom:2px}
+.st-ok{background:var(--okbg);color:var(--ok)}.st-warn{background:var(--warnbg);color:var(--warn)}.st-bad{background:var(--badbg);color:var(--bad)}.st-mute{background:var(--panel);color:var(--mute)}
+.status p{margin:4px 0 0;color:var(--ink)}
+.yrs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.yr{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.yr span{display:block;font-size:13px;color:var(--mute);font-weight:600}.yr b{display:block;font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}.yr small{font-size:12.5px;color:var(--mute)}
+@media(max-width:520px){.yrs{grid-template-columns:minmax(0,1fr)}}
+.lines{margin:18px 0 0;border-top:1px solid var(--line)}
+.ln{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.ln span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:600}
+.ln.tot{font-weight:800;font-size:16px;border-bottom:2px solid var(--ink)}
+.ln.sub2{color:var(--mute);font-size:14px;padding-left:14px}
+.acts{display:grid;gap:8px;margin-top:4px}
+.act{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--panel);border-radius:10px;font-size:14.5px}
+.act i{font-style:normal;font-weight:800;color:var(--acc)}
+.pkt{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:8px}
+.pkt h4{margin:0 0 6px;font-size:14px}
+.check{margin:0;padding:0}.check li{list-style:none;position:relative;padding-left:24px;margin:5px 0;font-size:14.5px}.check li::before{content:"";position:absolute;left:0;top:4px;width:14px;height:14px;border:1.5px solid var(--mute);border-radius:4px}
+.tog{display:inline-flex;gap:4px;background:var(--panel);padding:3px;border-radius:10px;margin-bottom:8px;flex-wrap:wrap}
+.tog button{min-height:36px;border:0;border-radius:8px;background:transparent;font-weight:700;font-size:13.5px;color:var(--mute);cursor:pointer;padding:0 12px}
+.tog button[aria-pressed=true]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:13px;color:var(--mute);font-weight:600}
+td.num,th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.sel td{background:var(--panel);font-weight:700}
+.tagl{font-size:12px;font-weight:700;color:var(--ok);white-space:nowrap}
+.cls{font-size:11px;font-weight:700;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:0 5px;white-space:nowrap}
+.why{display:block;font-size:12px;color:var(--mute);font-weight:500}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.scroll{overflow-x:auto}
+pre{background:var(--panel);border-radius:10px;padding:14px;font-size:12.5px;line-height:1.45;overflow-x:auto;max-height:420px}
+.disc{font-size:13px;color:var(--mute);border-top:1px solid var(--line);margin-top:18px;padding-top:12px}
+.pulse{animation:p 1.1s ease-in-out infinite}@keyframes p{50%{opacity:.4}}
+@media(prefers-reduced-motion:reduce){.pulse{animation:none}.sw input,.sw input::after{transition:none}}
+.empty{color:var(--mute);padding:48px 24px;text-align:center;border:1px dashed var(--line);border-radius:16px;background:var(--bg)}
+.empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:4px}
+.phone{max-width:420px;margin:0 auto;background:var(--bg);border:1px solid var(--line);border-radius:28px;padding:22px 18px;box-shadow:0 20px 50px -30px rgba(0,0,0,.5)}
+.bubble{background:var(--panel);border-radius:16px 16px 16px 4px;padding:14px 16px;margin:10px 0;font-size:15.5px}
+.bubble .who{font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:4px}
+.bubble .amt{font-size:34px;font-weight:800;background:var(--y);color:#101418;display:inline-block;padding:2px 10px;border-radius:8px;margin:6px 0;white-space:nowrap}
+@media(max-width:640px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flex;justify-content:space-between;gap:12px;border:0;padding:3px 0;text-align:right}.stack td:first-child{text-align:left}.stack td::before{content:attr(data-l);color:var(--mute);font-weight:600;text-align:left}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffd84a" stroke-width="2.6" stroke-linecap="round"><path d="M4 12h11"/><path d="M11 6l6 6-6 6"/><path d="M20 5v14"/></svg></span>Passage Rx <small id="tag"></small></div>
+  <nav id="tabs" role="tablist"></nav>
+  <button class="btn" id="lang" type="button">Français</button>
+</header>
+<div class="demo" id="demo"></div>
+<main id="view"></main>
+<script>
+{
+const S={
+ tag:['Coverage & access','Couverture et accès'],
+ clinic:['Check coverage','Vérifier'],patient:['Patient view','Vue patient'],pharmacy:['Pharmacy','Pharmacie'],audit:['Audit log','Journal'],
+ demo:['Demo. Patients, prices, DINs, carrier rules, pharmacies and distances are invented. Public-plan statuses marked “verified” were checked against public sources in Nov 2026; everything else is a demo mapping to verify before real use.','Démo. Patients, prix, DIN, règles d’assureurs, pharmacies et distances sont fictifs. Les statuts publics marqués « vérifié » ont été contrôlés auprès de sources publiques en nov. 2026; le reste est une correspondance de démo à vérifier avant tout usage réel.'],
+ h1:['Is it covered, what will the patient pay, and where can it be filled?','Est-ce couvert, combien le patient paiera-t-il et où l’exécuter?'],
+ sub:['An estimate appears right away from the clinic file. A partner pharmacy then runs a test claim and returns the exact amount. Rheumatology, GI and dermatology biologics use the same method.','Une estimation s’affiche aussitôt à partir du dossier. Une pharmacie partenaire fait ensuite une demande test et renvoie le montant exact. Les biologiques en rhumatologie, GI et dermatologie suivent la même méthode.'],
+ s1:['Patient','Patient'],s2:['Consent','Consentement'],s3:['Prescription','Ordonnance'],s4:['Pharmacy','Pharmacie'],ready:['Ready','Prêt'],
+ c1:['Use coverage details from the clinic file','Utiliser la couverture au dossier de la clinique'],
+ c1s:['Carrier, member ID, group, public-plan status, province, dependent date of birth. Kept 24 months or until withdrawn.','Assureur, no de membre, groupe, statut au régime public, province, date de naissance des personnes à charge. Conservés 24 mois ou jusqu’au retrait.'],
+ c2:['Send to the partner pharmacy for an exact amount','Envoyer à la pharmacie partenaire pour un montant exact'],
+ c2s:['Separate express consent. The pharmacy keeps nothing after the check.','Consentement exprès distinct. La pharmacie ne conserve rien après la vérification.'],
+ withdraw:['Withdraw consent and delete data','Retirer le consentement et supprimer les données'],
+ ind:['Indication','Indication'],mol:['Medication','Médicament'],prodl:['Product','Produit'],
+ dosing:['Monograph dosing, adult','Posologie de la monographie, adulte'],
+ qty:['Units this fill','Unités pour cette exécution'],days:['Days’ supply','Durée (jours)'],
+ y1:['Year 1','Année 1'],y2:['Year 2','Année 2'],fills:['fills','exécutions'],units:['units','unités'],
+ ytd:['Already paid this year (makes the estimate exact)','Déjà payé cette année (rend l’estimation exacte)'],
+ dedpaid:['Deductible paid so far','Franchise payée à ce jour'],maxused:['Annual maximum used','Plafond annuel utilisé'],
+ qcpaid:['Contributions paid this year (Quebec annual maximum)','Contributions versées cette année (plafond annuel Québec)'],monthpaid:['Contributions paid this month (RAMQ)','Contributions payées ce mois-ci (RAMQ)'],
+ blank:['Leave blank if unknown','Laisser vide si inconnu'],
+ run:['Check coverage','Vérifier la couverture'],rerun:['Check again','Vérifier de nouveau'],s5:['Run the check','Lancer la vérification'],
+ needc1:['Turn on clinic-file consent to run a check.','Activez le consentement au dossier pour lancer une vérification.'],
+ r1:['Estimate','Estimation'],r1d:['From clinic file','Dossier clinique'],r2:['Pharmacy check','Vérif. pharmacie'],r3:['Exact amount','Montant exact'],
+ sending:['Running test claim…','Demande test en cours…'],off:['Not sent','Non envoyée'],
+ pays:['Patient pays','Le patient paie'],exact:['Exact, verified by pharmacy','Exact, vérifié par la pharmacie'],
+ estx:['Estimate, exact on the inputs given','Estimation exacte selon les données saisies'],estr:['Estimate range, inputs missing','Fourchette, données manquantes'],
+ planpays:['Plan pays','Le régime paie'],
+ drug:['Drug cost','Coût du médicament'],fee:['Dispensing fee','Honoraires'],total:['Total claimed','Total réclamé'],
+ dedap:['Deductible applied','Franchise appliquée'],coins:['Co-insurance','Coassurance'],copay:['Co-pay','Quote-part'],overmax:['Over annual maximum','Au-delà du plafond annuel'],
+ capadj:['Quebec maximum contribution adjustment','Ajustement contribution maximale Québec'],
+ prim:['Primary plan pays','Régime principal paie'],sec:['Secondary plan pays','Régime secondaire paie'],
+ dedleft:['Deductible left after this fill','Franchise restante après'],maxleft:['Annual maximum left after this fill','Plafond restant après'],
+ ref:['Claim reference','Référence'],auth:['Authorization','Autorisation'],
+ covered:['Covered','Couvert'],covered_with_restriction:['Covered with authorization','Couvert avec autorisation'],not_covered:['Not covered','Non couvert'],unknown:['Coverage unknown','Couverture inconnue'],
+ st_ok:['Covered. Authorization on file.','Couvert. Autorisation au dossier.'],
+ st_pa:['Covered once authorization is approved','Couvert une fois l’autorisation approuvée'],
+ st_pa_p:['The plan rejected the test claim pending authorization, so no amount comes back yet. The figure shown is the pharmacy’s calculation of what the patient pays after approval.','Le régime a refusé la demande test en attente d’autorisation : aucun montant n’est encore renvoyé. Le montant affiché est le calcul de la pharmacie après approbation.'],
+ st_nc:['Not covered for this patient','Non couvert pour ce patient'],
+ st_un:['We can’t confirm coverage','Couverture non confirmée'],st_un_p:['No coverage on file. We don’t guess.','Aucune couverture au dossier. Aucune supposition.'],
+ st_code:['Plan response needs the pharmacy','Réponse à vérifier avec la pharmacie'],
+ diff:['Pharmacy amount differs from the estimate by','Le montant de la pharmacie diffère de l’estimation de'],match:['Pharmacy amount matches the estimate','Le montant de la pharmacie concorde avec l’estimation'],
+ y1d:['Year 1, with starting doses','Année 1, avec doses de départ'],y2d:['Year 2, maintenance','Année 2, entretien'],
+ ynote:['Projection from plan rules, not verified: plan year starts with the first fill, one fill per 4-week period, nothing paid before.','Projection selon les règles du régime, non vérifiée : l’année du régime commence à la première exécution, une exécution par période de 4 semaines, rien de payé avant.'],
+ after:['after approval','après approbation'],
+ todo:['What to do next','Prochaines étapes'],
+ a_pa:['Prepare the carrier’s prior-authorization packet (below)','Préparer le dossier d’autorisation préalable de l’assureur (ci-dessous)'],
+ a_eap:['Submit an Exceptional Access Program request (SADIE portal)','Soumettre une demande au Programme d’accès exceptionnel (portail SADIE)'],
+ a_exc:['Request RAMQ exception-drug authorization','Demander l’autorisation de médicament d’exception à la RAMQ'],
+ a_lu:['Write the Limited Use code on the prescription (criteria below)','Inscrire le code d’usage limité sur l’ordonnance (critères ci-dessous)'],
+ a_alt:['Review a covered option in the comparison (prescriber’s decision)','Examiner une option couverte dans la comparaison (décision du prescripteur)'],
+ a_add:['Add the patient’s coverage to the clinic file','Ajouter la couverture du patient au dossier'],
+ a_live:['Turn on pharmacy consent to get the exact amount','Activez le consentement pharmacie pour obtenir le montant exact'],
+ a_pick:['Choose a pharmacy in step 4 to get the exact amount','Choisissez une pharmacie à l’étape 4 pour obtenir le montant exact'],
+ a_nopart:['This pharmacy isn’t connected for test claims; it confirms the amount at the counter','Cette pharmacie n’est pas reliée aux demandes test; elle confirme le montant au comptoir'],
+ a_ytd:['Enter what the patient already paid this year for an exact estimate','Saisissez ce que le patient a déjà payé cette année pour une estimation exacte'],
+ a_ph:['Clinical questions go to the pharmacist','Questions cliniques : au pharmacien'],
+ a_code:['Call the pharmacy about this response','Appeler la pharmacie au sujet de cette réponse'],
+ a_ok:['Send the prescription to the selected pharmacy to fill','Envoyer l’ordonnance à la pharmacie choisie'],
+ a_prov:['Confirm where the patient lives: the postal code and the coverage file are in different provinces','Confirmer la résidence du patient : le code postal et le dossier sont dans deux provinces différentes'],
+ packet:['Authorization packet','Dossier d’autorisation'],crit:['Criteria','Critères'],docs:['Attach','À joindre'],
+ pkt_n:['Typical criteria shape. Exact wording and forms load from the plan’s current formulary edition.','Forme typique des critères. Le libellé exact et les formulaires proviennent de l’édition en vigueur du formulaire.'],
+ cmp:['Compare options','Comparer les options'],sc_mol:['Same molecule','Même molécule'],sc_ind:['All biologics for','Tous les biologiques pour'],
+ cmpn:['Same method for every product: monograph dosing and this patient’s plan rules, sorted by Year 1 patient cost, then Year 2, then name. No product is ranked by commercial relationship. The clinical choice stays with the prescriber.','Même méthode pour chaque produit : posologie de la monographie et règles du régime de ce patient, triés par coût de l’année 1, puis de l’année 2, puis par nom. Aucun classement selon une relation commerciale. Le choix clinique revient au prescripteur.'],
+ cov:['Coverage','Couverture'],perfill:['Per fill','Par exécution'],
+ low:['Lowest Year 1','Année 1 la plus basse'],tie:['Lowest Year 1 (tie)','Année 1 la plus basse (égalité)'],
+ how:['How this was calculated','Méthode de calcul'],json:['API output (JSON)','Sortie API (JSON)'],copy:['Copy JSON','Copier le JSON'],copied:['Copied','Copié'],
+ discl:['Estimate based on plan rules as of','Estimation fondée sur les règles du régime au'],discl2:['final coverage is determined at dispensing.','la couverture finale est établie à l’exécution.'],
+ disc_rel:['Disclosure: no sponsorships, pharmacy partnerships or fees from manufacturers, pharmacies or insurers in this demo.','Divulgation : aucune commandite, aucun partenariat ni frais de fabricants, pharmacies ou assureurs dans cette démo.'],
+ primary:['Primary','Principal'],secondary:['Secondary','Secondaire'],
+ bill:['Switch billability confirmation on file (written)','Confirmation écrite de facturabilité au dossier'],
+ bill_s:['Pilot blocker. Turned on here for the demo. In production it stays off until the switch vendor confirms in writing whether test claims are billable, logged, and whether a PA rejection shows on the patient record.','Bloquant pour le pilote. Activé ici pour la démo. En production, désactivé jusqu’à la confirmation écrite du fournisseur de réseau.'],
+ queue:['Test claims','Demandes test'],switch:['Switch','Réseau'],res:['Result','Résultat'],
+ approve:['Mark authorization approved and re-run','Marquer l’autorisation approuvée et relancer'],
+ codes:['Rejection code lookup (demo codes)','Table des codes de refus (codes fictifs)'],network:['Pharmacy network (demo directory)','Réseau de pharmacies (répertoire de démo)'],
+ when:['When','Quand'],who:['Who','Qui'],what:['What','Quoi'],path:['Path','Voie'],ver:['Version','Version'],
+ none:['No check yet','Aucune vérification'],none2:['Pick a patient and a medication, then press Check coverage.','Choisissez un patient et un médicament, puis appuyez sur Vérifier la couverture.'],
+ ai:['Hi, I’m the Passage Rx assistant. I’m an AI, not a pharmacist: I explain coverage, not medical questions.','Bonjour, je suis l’assistant Passage Rx. Je suis une IA, pas un pharmacien : j’explique la couverture, pas les questions médicales.'],
+ delivery:['Home delivery isn’t offered during the pilot. The pharmacy will contact you for pickup.','La livraison à domicile n’est pas offerte pendant le pilote. La pharmacie vous contactera pour la cueillette.'],
+ src:['Source','Source'],contact:['contact the pharmacy','communiquez avec la pharmacie'],
+ stale:['The prescription changed. Press Check again to update.','L’ordonnance a changé. Appuyez sur Vérifier de nouveau.'],
+ srcv:['Public-plan status verified:','Statut public vérifié :'],srcu:['Public-plan status for this indication is a demo mapping; verify against the current formulary.','Statut public pour cette indication : correspondance de démo, à vérifier dans le formulaire en vigueur.'],
+ launch:['marketing status to verify','commercialisation à vérifier'],
+ t_ref:['reference','référence'],t_bios:['biosimilar','biosimilaire'],t_brand:['brand biologic','biologique de marque'],
+ onfile:['on file','au dossier'],needed:['needed','requise'],
+ pc:['Postal code','Code postal'],rad:['Within','Rayon'],find:['Find','Chercher'],
+ pch:['Only the first three characters (the FSA) are used and logged. Pharmacies must be licensed in the patient’s province.','Seuls les trois premiers caractères (RTA) sont utilisés et journalisés. Les pharmacies doivent détenir un permis dans la province du patient.'],
+ f_partner:['Exact amount (partner)','Montant exact (partenaire)'],f_cold:['Cold-chain delivery SOP','PON chaîne du froid'],f_fr:['Service in French','Service en français'],f_ships:['Home delivery','Livraison à domicile'],
+ b_partner:['Partner · exact amount in minutes','Partenaire · montant exact en minutes'],b_nopart:['Not connected for test claims','Non reliée aux demandes test'],
+ b_cold:['Cold-chain delivery SOP on file','PON chaîne du froid au dossier'],b_ships:['Home delivery after Phase 2 review','Livraison après revue (phase 2)'],
+ choose:['Choose','Choisir'],selected:['Selected','Choisie'],change:['Change','Changer'],
+ nophar:['No pharmacy chosen. Search by postal code below.','Aucune pharmacie choisie. Cherchez par code postal ci-dessous.'],
+ live_ok:['Returns the exact amount by test claim','Renvoie le montant exact par demande test'],live_no:['Exact amount confirmed at the counter','Montant exact confirmé au comptoir'],
+ pc_err:['Enter a Canadian postal code, for example M5V 3L9 or H2T.','Entrez un code postal canadien, par exemple M5V 3L9 ou H2T.'],
+ pc_unk:['This FSA isn’t in the demo map, so no distances. Showing every pharmacy licensed in {Y}.','Cette RTA n’est pas dans la carte de démo : pas de distances. Toutes les pharmacies autorisées en {Y} sont affichées.'],
+ pc_prov:['This postal code is in {X}, but the coverage file says {Y}. Confirm where the patient lives before routing.','Ce code postal est en {X}, mais le dossier indique {Y}. Confirmez la résidence du patient avant l’acheminement.'],
+ excl:['{n} nearby pharmacy(ies) licensed outside {Y} are hidden: they can’t fill this prescription.','{n} pharmacie(s) à proximité autorisée(s) hors {Y} masquée(s) : elles ne peuvent pas exécuter cette ordonnance.'],
+ nores:['No pharmacy matches. Widen the radius or remove a filter.','Aucune pharmacie ne correspond. Élargissez le rayon ou retirez un filtre.'],
+ phdisc:['Sorted by distance only. Partner pharmacies have a data-processing agreement with Passage Rx; no fee depends on which product is dispensed. Directory and distances are demo data.','Trié par distance seulement. Les pharmacies partenaires ont une entente de traitement des données avec Passage Rx; aucuns frais ne dépendent du produit délivré. Répertoire et distances : données de démo.'],
+ fillat:['Fill at','Exécution à'],found:['{n} found near {F}','{n} trouvée(s) près de {F}'],
+ why_nl_pub:['Not on the public formulary for this indication','Non inscrit à la liste publique pour cette indication'],
+ why_bios_pol:['Public biosimilar policy: reference product not covered for new starts','Politique publique biosimilaires : référence non couverte pour les nouveaux patients'],
+ why_bios_car:['Plan covers biosimilars only for new starts','Le régime ne couvre que les biosimilaires pour les nouveaux patients'],
+ why_nl_car:['Not on this plan’s drug list','Ne figure pas sur la liste du régime'],
+ why_lu:['ODB Limited Use code','Code d’usage limité PMO'],why_eap:['ODB Exceptional Access request','Demande d’accès exceptionnel PMO'],
+ why_exc:['RAMQ exception-drug authorization','Autorisation de médicament d’exception RAMQ'],why_pa:['Carrier prior authorization','Autorisation préalable de l’assureur'],
+};
+let L='en';const FR=()=>L==='fr';const I=()=>FR()?1:0;const t=k=>(S[k]||[k,k])[I()];
+const tf=(k,o)=>t(k).replace(/\{(\w+)\}/g,(_,x)=>o[x]);
+const money=v=>v==null?'—':new Intl.NumberFormat(FR()?'fr-CA':'en-CA',{style:'currency',currency:'CAD'}).format(v);
+const fkm=v=>new Intl.NumberFormat(FR()?'fr-CA':'en-CA',{maximumFractionDigits:1}).format(v)+' km';
+const r2=v=>Math.round(v*100)/100;const now=()=>new Date().toISOString();
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hm=ts=>ts?ts.slice(0,16).replace('T',' '):'';
+const PROVN={ON:['Ontario','Ontario'],QC:['Quebec','Québec'],NL:['Newfoundland and Labrador','Terre-Neuve-et-Labrador'],NS:['Nova Scotia','Nouvelle-Écosse'],PE:['Prince Edward Island','Île-du-Prince-Édouard'],NB:['New Brunswick','Nouveau-Brunswick'],MB:['Manitoba','Manitoba'],SK:['Saskatchewan','Saskatchewan'],AB:['Alberta','Alberta'],BC:['British Columbia','Colombie-Britannique'],'NT/NU':['the Territories','les Territoires'],YT:['Yukon','Yukon']};
+const pn=p=>(PROVN[p]||[p,p])[I()];
+
+const RULES={version:'PRX-RULES 0.3-demo',as_of:'2026-11-21',dispFee:12.50,tol:0.01,
+ odb:{name:'Ontario Drug Benefit',deductible:100,copay:6.11},
+ ramq:{name:'RAMQ public plan',monthDed:21.25,coins:.30,monthMax:105.25,yearMax:1263},
+ cob:['Payer order is a demo assumption (private plan first, ODB as payer of last resort); verify.','Ordre des payeurs : hypothèse de démo (régime privé d’abord, PMO en dernier recours); à vérifier.']};
+
+/* ---------- Clinical catalogue ---------- */
+const AREAS={rheum:['Rheumatology & GI','Rhumato et GI'],derm:['Dermatology','Dermatologie']};
+const IND={RA:['Rheumatoid arthritis','Polyarthrite rhumatoïde','rheum'],CD:['Crohn’s disease','Maladie de Crohn','rheum'],
+ PsO:['Plaque psoriasis','Psoriasis en plaques','derm'],AD:['Atopic dermatitis','Dermatite atopique','derm'],HS:['Hidradenitis suppurativa','Hidradénite suppurée','derm'],CSU:['Chronic spontaneous urticaria','Urticaire chronique spontanée','derm']};
+const CLS={TNF:'TNF','IL12/23':'IL-12/23','IL17A':'IL-17A','IL17RA':'IL-17RA','IL17AF':'IL-17A/F','IL23':'IL-23','IL4R':'IL-4Rα','IL13':'IL-13','IL31':'IL-31RA','IgE':'IgE'};
+const D=(load,every,from,units)=>({load,every,from,units});
+const wk=(a,b,s,u)=>{const r=[];for(let w=a;w<=b;w+=s)r.push([w,u]);return r;};
+const MOLS=[
+ {id:'ada',inn:'adalimumab',cls:'TNF',unit:['40 mg pen','stylo 40 mg'],
+  ind:{RA:D([],2,0,1),CD:D([[0,4],[2,2]],2,4,1),PsO:D([[0,2]],2,1,1),HS:D([[0,4],[2,2]],1,4,1)},
+  dose:{RA:['40 mg every 2 weeks','40 mg aux 2 semaines'],CD:['160 mg, 80 mg at week 2, then 40 mg every 2 weeks','160 mg, 80 mg à la semaine 2, puis 40 mg aux 2 semaines'],PsO:['80 mg, then 40 mg every 2 weeks from week 1','80 mg, puis 40 mg aux 2 semaines dès la semaine 1'],HS:['160 mg, 80 mg at week 2, then 40 mg weekly from week 4','160 mg, 80 mg à la semaine 2, puis 40 mg chaque semaine dès la semaine 4']},
+  pub:{ON:{RA:'LU',CD:'LU',PsO:'LU',HS:'LU'},QC:{RA:'EXC',CD:'EXC',PsO:'EXC',HS:'EXC'}},
+  prods:[['ref','Humira','reference',780],['amg','Amgevita','biosimilar',520],['had','Hadlima','biosimilar',505],['hul','Hulio','biosimilar',498],['hyr','Hyrimoz','biosimilar',515],['ida','Idacio','biosimilar',510],['sim','Simlandi','biosimilar',495],['yuf','Yuflyma','biosimilar',500]]},
+ {id:'eta',inn:'etanercept',cls:'TNF',unit:['50 mg pen','stylo 50 mg'],
+  ind:{PsO:D(wk(0,11,1,2),1,12,1)},dose:{PsO:['50 mg twice weekly for 12 weeks, then 50 mg weekly','50 mg deux fois par semaine pendant 12 semaines, puis 50 mg par semaine']},
+  pub:{ON:{PsO:'LU'},QC:{PsO:'EXC'}},prods:[['ref','Enbrel','reference',410],['bre','Brenzys','biosimilar',280],['erl','Erelzi','biosimilar',285]]},
+ {id:'cer',inn:'certolizumab pegol',cls:'TNF',unit:['200 mg syringe','seringue 200 mg'],
+  ind:{PsO:D([[0,2],[2,2],[4,2]],2,6,1)},dose:{PsO:['400 mg at weeks 0, 2 and 4, then 200 mg every 2 weeks','400 mg aux semaines 0, 2 et 4, puis 200 mg aux 2 semaines']},
+  pub:{ON:{PsO:'EAP'},QC:{PsO:'EXC'}},prods:[['cim','Cimzia','brand',690]]},
+ {id:'ust',inn:'ustekinumab',cls:'IL12/23',unit:['45 mg syringe','seringue 45 mg'],
+  ind:{PsO:D([[0,1]],12,4,1)},dose:{PsO:['45 mg at weeks 0 and 4, then every 12 weeks (≤ 100 kg)','45 mg aux semaines 0 et 4, puis aux 12 semaines (≤ 100 kg)']},
+  pub:{ON:{PsO:'LU'},QC:{PsO:'EXC'}},
+  prods:[['ref','Stelara','reference',4600],['jam','Jamteki','biosimilar',2900],['otu','Otulfi','biosimilar',2920],['pyz','Pyzchiva','biosimilar',2900,'verify'],['ste','Steqeyma','biosimilar',2880],['wez','Wezlana','biosimilar',2950],['yes','Yesintek','biosimilar',2860]]},
+ {id:'sec',inn:'secukinumab',cls:'IL17A',unit:['300 mg pen','stylo 300 mg'],
+  ind:{PsO:D(wk(0,3,1,1),4,4,1),HS:D(wk(0,3,1,1),4,4,1)},
+  dose:{PsO:['300 mg weekly at weeks 0 to 4, then every 4 weeks','300 mg chaque semaine des semaines 0 à 4, puis aux 4 semaines'],HS:['300 mg weekly at weeks 0 to 4, then every 4 weeks','300 mg chaque semaine des semaines 0 à 4, puis aux 4 semaines']},
+  pub:{ON:{PsO:'LU',HS:'EAP'},QC:{PsO:'EXC',HS:'EXC'}},prods:[['cos','Cosentyx','brand',1650]]},
+ {id:'ixe',inn:'ixekizumab',cls:'IL17A',unit:['80 mg pen','stylo 80 mg'],
+  ind:{PsO:D([[0,2],[2,1],[4,1],[6,1],[8,1],[10,1]],4,12,1)},dose:{PsO:['160 mg, then 80 mg every 2 weeks to week 12, then every 4 weeks','160 mg, puis 80 mg aux 2 semaines jusqu’à la semaine 12, puis aux 4 semaines']},
+  pub:{ON:{PsO:'LU'},QC:{PsO:'EXC'}},prods:[['tal','Taltz','brand',1700]]},
+ {id:'bro',inn:'brodalumab',cls:'IL17RA',unit:['210 mg syringe','seringue 210 mg'],
+  ind:{PsO:D([[0,1],[1,1]],2,2,1)},dose:{PsO:['210 mg at weeks 0, 1 and 2, then every 2 weeks','210 mg aux semaines 0, 1 et 2, puis aux 2 semaines']},
+  pub:{ON:{PsO:'LU'},QC:{PsO:'EXC'}},prods:[['sil','Siliq','brand',645]]},
+ {id:'bim',inn:'bimekizumab',cls:'IL17AF',unit:['160 mg pen','stylo 160 mg'],
+  ind:{PsO:D([[0,2],[4,2],[8,2],[12,2]],8,16,2),HS:D(wk(0,14,2,2),4,16,2)},
+  dose:{PsO:['320 mg every 4 weeks to week 16, then every 8 weeks','320 mg aux 4 semaines jusqu’à la semaine 16, puis aux 8 semaines'],HS:['320 mg every 2 weeks to week 16, then every 4 weeks','320 mg aux 2 semaines jusqu’à la semaine 16, puis aux 4 semaines']},
+  pub:{ON:{PsO:'LU',HS:'NL'},QC:{PsO:'EXC',HS:'NL'}},prods:[['bmz','Bimzelx','brand',1850]]},
+ {id:'gus',inn:'guselkumab',cls:'IL23',unit:['100 mg pen','stylo 100 mg'],
+  ind:{PsO:D([[0,1]],8,4,1)},dose:{PsO:['100 mg at weeks 0 and 4, then every 8 weeks','100 mg aux semaines 0 et 4, puis aux 8 semaines']},
+  pub:{ON:{PsO:'LU'},QC:{PsO:'EXC'}},prods:[['tre','Tremfya','brand',3300]]},
+ {id:'ris',inn:'risankizumab',cls:'IL23',unit:['150 mg pen','stylo 150 mg'],
+  ind:{PsO:D([[0,1]],12,4,1)},dose:{PsO:['150 mg at weeks 0 and 4, then every 12 weeks','150 mg aux semaines 0 et 4, puis aux 12 semaines']},
+  pub:{ON:{PsO:'LU'},QC:{PsO:'EXC'}},prods:[['sky','Skyrizi','brand',5100]]},
+ {id:'til',inn:'tildrakizumab',cls:'IL23',unit:['100 mg syringe','seringue 100 mg'],
+  ind:{PsO:D([[0,1]],12,4,1)},dose:{PsO:['100 mg at weeks 0 and 4, then every 12 weeks','100 mg aux semaines 0 et 4, puis aux 12 semaines']},
+  pub:{ON:{PsO:'LU'},QC:{PsO:'EXC'}},prods:[['ilu','Ilumya','brand',4650]]},
+ {id:'dup',inn:'dupilumab',cls:'IL4R',unit:['300 mg pen','stylo 300 mg'],
+  ind:{AD:D([[0,2]],2,2,1)},dose:{AD:['600 mg, then 300 mg every 2 weeks','600 mg, puis 300 mg aux 2 semaines']},
+  pub:{ON:{AD:'EAP'},QC:{AD:'EXC'}},prods:[['dpx','Dupixent','brand',1000]]},
+ {id:'leb',inn:'lebrikizumab',cls:'IL13',unit:['250 mg pen','stylo 250 mg'],
+  ind:{AD:D([[0,2],[2,2],...wk(4,14,2,1)],4,16,1)},dose:{AD:['500 mg at weeks 0 and 2, 250 mg every 2 weeks to week 16, then every 4 weeks','500 mg aux semaines 0 et 2, 250 mg aux 2 semaines jusqu’à la semaine 16, puis aux 4 semaines']},
+  pub:{ON:{AD:'NL'},QC:{AD:'EXC'}},prods:[['ebg','Ebglyss','brand',1050]]},
+ {id:'tra',inn:'tralokinumab',cls:'IL13',unit:['150 mg syringe','seringue 150 mg'],
+  ind:{AD:D([[0,4]],2,2,2)},dose:{AD:['600 mg, then 300 mg every 2 weeks','600 mg, puis 300 mg aux 2 semaines']},
+  pub:{ON:{AD:'NL'},QC:{AD:'NL'}},prods:[['adt','Adtralza','brand',480]]},
+ {id:'nem',inn:'nemolizumab',cls:'IL31',unit:['30 mg pen','stylo 30 mg'],
+  ind:{AD:D([[0,2]],4,4,1)},dose:{AD:['60 mg, then 30 mg every 4 weeks (< 90 kg)','60 mg, puis 30 mg aux 4 semaines (< 90 kg)']},
+  pub:{ON:{AD:'NL'},QC:{AD:'NL'}},prods:[['nml','Nemluvio','brand',1900]]},
+ {id:'oma',inn:'omalizumab',cls:'IgE',unit:['300 mg syringe','seringue 300 mg'],
+  ind:{CSU:D([],4,0,1)},dose:{CSU:['300 mg every 4 weeks','300 mg aux 4 semaines']},
+  pub:{ON:{CSU:'LU'},QC:{CSU:'EXC'}},prods:[['ref','Xolair','reference',1150],['oml','Omlyclo','biosimilar',800]]}];
+/* Public-plan facts checked against public sources (Nov 2026). Everything else is a demo mapping. */
+const SRC={'ada.ON':'ODB biosimilar policy (2023)','eta.ON':'ODB biosimilar policy (2023)','ada.QC':'RAMQ biosimilar transition (2022)','eta.QC':'RAMQ biosimilar transition (2022)',
+ 'ust.ON':'ODB EO Notice 2024-04-30 (LU, PsO) · biosimilar policy from 2024-07-31','ust.QC':'RAMQ Infolettre 057-24 (biosimilar transition)',
+ 'dup.ON':'Ontario EAP listing (2021)','leb.QC':'RAMQ listing 2025-09-25','leb.ON':'CDA-AMC positive Jul 2026 + pCPA LOI; ODB listing pending',
+ 'tra.ON':'CDA-AMC: do not reimburse','tra.QC':'CDA-AMC: do not reimburse','nem.ON':'Health Canada NOC Dec 2025; no public listing found','nem.QC':'Health Canada NOC Dec 2025; no public listing found',
+ 'oma.ON':'ODB EO Notice 2025-08-29 (Omlyclo LU, new-start rule)','bim.ON.HS':'HS NOC Dec 2025; CDA-AMC review 2026; no listing found'};
+const CRIT={
+ PsO:{c:[['Moderate to severe chronic plaque psoriasis: PASI ≥ 10 (some plans 12) or BSA ≥ 10%, and DLQI > 10','Psoriasis en plaques chronique modéré à sévère : PASI ≥ 10 (certains régimes 12) ou SC ≥ 10 %, et DLQI > 10'],['Failure, intolerance or contraindication to phototherapy and to methotrexate or cyclosporine','Échec, intolérance ou contre-indication à la photothérapie et au méthotrexate ou à la cyclosporine'],['Dermatologist prescriber; renewal needs a PASI 75 response','Prescrit par un dermatologue; renouvellement : réponse PASI 75']],
+  d:[['Baseline PASI, BSA and DLQI, with dates','PASI, SC et DLQI de départ, datés'],['Prior systemic therapies: drug, dose, dates, reason stopped','Traitements systémiques antérieurs : médicament, dose, dates, raison de l’arrêt'],['Phototherapy history, or why it isn’t accessible','Historique de photothérapie ou raison de son inaccessibilité']]},
+ AD:{c:[['Moderate to severe atopic dermatitis: EASI ≥ 16 or IGA ≥ 3, with BSA ≥ 10%','Dermatite atopique modérée à sévère : EASI ≥ 16 ou IGA ≥ 3, SC ≥ 10 %'],['Inadequate response to topical therapy, phototherapy (where accessible), and methotrexate or cyclosporine','Réponse insuffisante aux topiques, à la photothérapie (si accessible) et au méthotrexate ou à la cyclosporine'],['Specialist prescriber; renewal needs an EASI 75 response','Prescripteur spécialiste; renouvellement : réponse EASI 75']],
+  d:[['Baseline EASI or IGA, BSA and itch score, with dates','EASI ou IGA, SC et score de prurit de départ, datés'],['Topical and systemic therapies tried, with dates and outcome','Traitements topiques et systémiques essayés, dates et résultats'],['Phototherapy history, or why it isn’t accessible','Historique de photothérapie ou raison de son inaccessibilité']]},
+ HS:{c:[['Moderate to severe HS: Hurley stage II or III, at least 3 abscesses or inflammatory nodules','HS modérée à sévère : stade de Hurley II ou III, au moins 3 abcès ou nodules inflammatoires'],['Inadequate response to a 90-day course of oral antibiotics','Réponse insuffisante à une antibiothérapie orale de 90 jours'],['Renewal needs a HiSCR response','Renouvellement : réponse HiSCR']],
+  d:[['Hurley stage and abscess and nodule count, with dates','Stade de Hurley et nombre d’abcès et de nodules, datés'],['Antibiotic courses: drug, dose, duration','Antibiothérapies : médicament, dose, durée']]},
+ CSU:{c:[['UAS7 ≥ 16 despite a second-generation H1 antihistamine up to 4× the standard dose','UAS7 ≥ 16 malgré un antihistaminique H1 de 2e génération jusqu’à 4 fois la dose standard'],['Renewal after 24 weeks needs a documented response','Renouvellement après 24 semaines : réponse documentée']],
+  d:[['UAS7 scores, with dates','Scores UAS7 datés'],['Antihistamine trials: drug, dose, duration','Essais d’antihistaminiques : médicament, dose, durée']]},
+ RA:{c:[['Active RA despite methotrexate and at least one other DMARD','PR active malgré le méthotrexate et au moins un autre ARMM'],['Rheumatologist prescriber','Prescrit par un rhumatologue']],d:[['Disease activity score and joint counts','Score d’activité et décompte articulaire'],['DMARDs tried, with dates','ARMM essayés, avec dates']]},
+ CD:{c:[['Moderate to severe Crohn’s disease despite conventional therapy','Maladie de Crohn modérée à sévère malgré le traitement conventionnel'],['Gastroenterologist prescriber','Prescrit par un gastroentérologue']],d:[['Disease activity index and endoscopy report','Indice d’activité et rapport d’endoscopie'],['Corticosteroids and immunosuppressants tried, with dates','Corticostéroïdes et immunosuppresseurs essayés, avec dates']]}};
+let dinN=1001;const PRODUCTS=[];
+MOLS.forEach(m=>{m.hasBios=m.prods.some(p=>p[2]==='biosimilar');m.prods.forEach(([c,name,type,price,launch])=>PRODUCTS.push({id:m.id+'-'+c,mol:m.id,name,type,price,launch:launch||'',din:'DEMO-'+(dinN++)}));});
+const M=id=>MOLS.find(m=>m.id===id);const PR=id=>PRODUCTS.find(p=>p.id===id);
+const molsFor=ind=>MOLS.filter(m=>m.ind[ind]).sort((a,b)=>a.inn.localeCompare(b.inn));
+const prodsFor=mid=>PRODUCTS.filter(p=>p.mol===mid).sort((a,b)=>a.name.localeCompare(b.name));
+const tlab=p=>p.type==='reference'?t('t_ref'):p.type==='biosimilar'?t('t_bios'):t('t_brand');
+function doses(s){const ev=s.load.map(x=>[x[0],x[1]]);for(let w=s.from;w<104;w+=s.every)ev.push([w,s.units]);return ev;}
+function fills(m,ind,yr){const lo=yr*52,b={};doses(m.ind[ind]).forEach(([w,u])=>{if(w>=lo&&w<lo+52){const k=Math.floor((w-lo)/4);b[k]=(b[k]||0)+u;}});return Object.keys(b).map(Number).sort((a,b)=>a-b).map(k=>b[k]);}
+function defFill(m,ind){const s=m.ind[ind];return{qty:fills(m,ind,1)[0],days:s.every>=4?s.every*7:28};}
+
+/* ---------- Plans, patients, pharmacies ---------- */
+const SWITCH={'Sun Life':'Express Scripts Canada','Desjardins':'TELUS Health (demo mapping)','Canada Life':'TELUS Health (demo mapping)','Manulife':'TELUS Health (demo mapping)','iA Financial Group':'TELUS Health (demo mapping)','ODB':'Ontario HNS (demo)','RAMQ':'RAMQ (demo)','Green Shield':'Green Shield (demo mapping)'};
+const CODES={PA:['Authorization required','Autorisation requise'],NC:['Product not covered under this plan','Produit non couvert par ce régime'],MX:['Annual maximum reached','Plafond annuel atteint']};
+const PATIENTS=[
+ {id:'p6',name:'Kevin M.',age:47,prov:'ON',dx:'PsO',mol:'ris',note:['Psoriasis, private plan with max','Psoriasis, régime privé avec plafond'],plans:[{kind:'private',carrier:'Manulife',coins:.8,ded:0,max:15000,biosimOnly:true,auth:['ris']}],truth:{maxUsed:0}},
+ {id:'p7',name:'Sophie D.',age:29,prov:'QC',dx:'AD',mol:'dup',note:['Eczema, Quebec group plan','Eczéma, régime collectif Québec'],plans:[{kind:'private',prov:'QC',carrier:'iA Financial Group',coins:.8,ded:0,max:null,qcCap:1263,biosimOnly:true,offList:'nc',auth:[]}],truth:{qcPaid:0}},
+ {id:'p8',name:'Denise R.',age:71,prov:'QC',dx:'HS',mol:'ada',note:['HS, RAMQ public plan','HS, régime public RAMQ'],plans:[{kind:'ramq',auth:['ada']}],truth:{qcPaid:640,monthPaid:0}},
+ {id:'p3',name:'Priya S.',age:35,prov:'ON',dx:'PsO',mol:'ada',note:['Psoriasis, deductible plan','Psoriasis, régime avec franchise'],plans:[{kind:'private',carrier:'Sun Life',coins:.8,ded:500,max:10000,biosimOnly:true,auth:['ada']}],truth:{dedPaid:300,maxUsed:2150}},
+ {id:'p1',name:'Margaret T.',age:68,prov:'ON',dx:'RA',mol:'ada',note:['RA, ODB senior','PR, aînée PMO'],plans:[{kind:'odb',auth:['ada']}],truth:{dedPaid:100}},
+ {id:'p2',name:'Julien B.',age:42,prov:'QC',dx:'CD',mol:'ada',note:['Crohn’s, Quebec group plan','Crohn, régime collectif Québec'],plans:[{kind:'private',prov:'QC',carrier:'Desjardins',coins:.8,ded:0,max:null,qcCap:1263,biosimOnly:true,auth:[]}],truth:{qcPaid:310}},
+ {id:'p4',name:'Robert L.',age:66,prov:'ON',dx:'RA',mol:'ada',note:['RA, ODB + spouse’s plan','PR, PMO + régime du conjoint'],plans:[{kind:'private',carrier:'Canada Life',coins:.9,ded:0,max:5000,biosimOnly:true,auth:['ada'],dependent:true},{kind:'odb',auth:['ada']}],truth:{dedPaid:100,maxUsed:4400}},
+ {id:'p5',name:'Amira K.',age:31,prov:'ON',dx:'AD',mol:'dup',note:['Eczema, moved from Alberta','Eczéma, arrivée de l’Alberta'],plans:[],truth:{liveCode:'QZ',carrier:'Green Shield'}}];
+const FSA={M5V:[43.642,-79.394],M5G:[43.657,-79.387],M4G:[43.709,-79.364],M2N:[43.768,-79.41],M6P:[43.661,-79.464],M1B:[43.806,-79.194],L5B:[43.586,-79.64],L4C:[43.875,-79.437],L8P:[43.256,-79.877],L9A:[43.233,-79.875],K1P:[45.42,-75.698],K2P:[45.413,-75.693],K1N:[45.429,-75.687],N2L:[43.474,-80.537],N6A:[42.986,-81.25],
+ H2T:[45.523,-73.594],H2Y:[45.505,-73.556],H3A:[45.504,-73.574],H2X:[45.511,-73.567],H1V:[45.554,-73.546],H4A:[45.469,-73.616],H7N:[45.556,-73.721],J4K:[45.531,-73.512],J4W:[45.494,-73.463],J8Y:[45.437,-75.733],G1V:[46.779,-71.276],G1R:[46.811,-71.215]};
+const PROV_OF={A:'NL',B:'NS',C:'PE',E:'NB',G:'QC',H:'QC',J:'QC',K:'ON',L:'ON',M:'ON',N:'ON',P:'ON',R:'MB',S:'SK',T:'AB',V:'BC',X:'NT/NU',Y:'YT'};
+const PC_RE=/^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z](\d[ABCEGHJ-NPRSTV-Z]\d)?$/;
+const PH=(id,name,area,fsa,ll,prov,partner,cold,ships,lang,hours)=>({id,name,area,fsa,ll,prov,partner,cold,ships,lang,hours});
+const H1=['Mon–Sat 9–7','lun.–sam. 9 h–19 h'],H2=['Daily 9–9','tous les jours 9 h–21 h'],H3=['Mon–Fri 9–6','lun.–ven. 9 h–18 h'];
+const PHARMS=[
+ PH('ph1','Harbourline Specialty Pharmacy',['Downtown Toronto','Centre-ville de Toronto'],'M5V',[43.644,-79.3905],'ON',true,true,['ON'],['EN','FR'],H1),
+ PH('ph2','Northpoint Community Pharmacy',['North York','North York'],'M2N',[43.7665,-79.412],'ON',false,false,[],['EN'],H2),
+ PH('ph3','Ridgeview Specialty Rx',['Mississauga City Centre','Centre-ville de Mississauga'],'L5B',[43.588,-79.642],'ON',true,true,['ON'],['EN'],H3),
+ PH('ph4','Elm & Bay Pharmacy',['Leaside, Toronto','Leaside, Toronto'],'M4G',[43.7105,-79.362],'ON',false,true,[],['EN'],H2),
+ PH('ph5','Capital Biologics Pharmacy',['Centretown, Ottawa','Centre-ville, Ottawa'],'K1P',[45.4195,-75.699],'ON',true,true,['ON'],['EN','FR'],H3),
+ PH('ph6','Escarpment Pharmacy',['Downtown Hamilton','Centre-ville de Hamilton'],'L8P',[43.2565,-79.874],'ON',false,true,['ON'],['EN'],H1),
+ PH('ph7','Pharmacie Spécialisée Plateau',['Plateau-Mont-Royal, Montréal','Plateau-Mont-Royal, Montréal'],'H2T',[45.524,-73.593],'QC',true,true,['QC'],['FR','EN'],H1),
+ PH('ph8','Pharmacie Lumen Centre-ville',['Old Montréal','Vieux-Montréal'],'H2Y',[45.5055,-73.5545],'QC',false,true,[],['FR','EN'],H2),
+ PH('ph9','Pharmacie Rive-Sud Biologiques',['Longueuil','Longueuil'],'J4K',[45.53,-73.515],'QC',false,true,['QC'],['FR'],H3),
+ PH('ph10','Pharmacie Laval Horizon',['Laval','Laval'],'H7N',[45.557,-73.72],'QC',false,false,[],['FR'],H2),
+ PH('ph11','Pharmacie Outaouais Santé',['Hull, Gatineau','Hull, Gatineau'],'J8Y',[45.438,-75.734],'QC',false,true,['QC'],['FR','EN'],H3),
+ PH('ph12','Pharmacie Cap-Rouge Spécialités',['Sainte-Foy, Québec','Sainte-Foy, Québec'],'G1V',[46.78,-71.278],'QC',true,true,['QC'],['FR'],H1)];
+const phById=id=>PHARMS.find(p=>p.id===id);
+const hav=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dA=r(b[0]-a[0]),dO=r(b[1]-a[1]);const h=Math.sin(dA/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dO/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
+
+/* ---------- State ---------- */
+const st={tab:'clinic',pid:'p6',area:'derm',ind:'PsO',mol:'ris',prod:'ris-sky',qty:1,days:84,scope:'ind',stale:false,consent:{},ytd:{},bill:true,audit:[],res:null,live:{},busy:false,
+ pcIn:'',rad:25,flt:{partner:false,cold:false,fr:false,ships:false},srch:{},pharm:{}};
+const log=(who,what,path,result,ver)=>st.audit.unshift({ts:now(),who,what,path,result,ver:ver||RULES.version});
+const P=()=>PATIENTS.find(p=>p.id===st.pid);const C=()=>st.consent[st.pid]||(st.consent[st.pid]={clinic:null,pharmacy:null});
+const Y=()=>st.ytd[st.pid]||(st.ytd[st.pid]={dedPaid:'',maxUsed:'',qcPaid:'',monthPaid:''});
+const num=v=>v===''||v==null?null:+v;
+const ctx=()=>({mol:M(st.mol),prod:PR(st.prod),ind:st.ind});
+const selPh=()=>phById(st.pharm[st.pid]);
+const planName=pl=>pl.kind==='odb'?RULES.odb.name:pl.kind==='ramq'?RULES.ramq.name:pl.carrier;
+const planKey=pl=>pl.kind==='odb'?'ODB':pl.kind==='ramq'?'RAMQ':pl.carrier;
+function setRx(pt){st.ind=pt.dx;st.area=IND[pt.dx][2];setMol(pt.mol&&M(pt.mol).ind[pt.dx]?pt.mol:molsFor(pt.dx)[0].id);}
+function setMol(id){st.mol=id;st.prod=prodsFor(id)[0].id;const d=defFill(M(id),st.ind);st.qty=d.qty;st.days=d.days;}
+
+/* ---------- Rules engine (Path A) and simulated adjudication (Path B) share this core ---------- */
+function cover(pl,c){const m=c.mol,ind=c.ind,isRef=c.prod.type==='reference'&&m.hasBios;
+ if(pl.kind==='odb'){const s=(m.pub.ON||{})[ind]||'NL';if(s==='NL')return{st:'not_covered',why:'nl_pub'};if(isRef)return{st:'not_covered',why:'bios_pol'};return{st:'covered_with_restriction',why:s==='LU'?'lu':'eap',auth:s==='EAP'};}
+ if(pl.kind==='ramq'){const s=(m.pub.QC||{})[ind]||'NL';if(s==='NL')return{st:'not_covered',why:'nl_pub'};if(isRef)return{st:'not_covered',why:'bios_pol'};return{st:'covered_with_restriction',why:'exc',auth:true};}
+ if(pl.prov==='QC'){const s=(m.pub.QC||{})[ind]||'NL';if(isRef&&pl.biosimOnly)return{st:'not_covered',why:'bios_car'};if(s==='NL'&&pl.offList==='nc')return{st:'not_covered',why:'nl_car'};return{st:'covered_with_restriction',why:'pa',auth:true};}
+ if((pl.excl||[]).includes(m.id))return{st:'not_covered',why:'nl_car'};if(isRef&&pl.biosimOnly)return{st:'not_covered',why:'bios_car'};return{st:'covered_with_restriction',why:'pa',auth:true};}
+const authOn=(pl,c)=>(pl.auth||[]).includes(c.mol.id);
+const authNeeded=(pt,c)=>pt.plans.filter(pl=>{const v=cover(pl,c);return v.st!=='not_covered'&&v.auth&&!authOn(pl,c);}).map(pl=>cover(pl,c).why);
+function apply(pl,amt,a){
+ if(pl.kind==='odb'){const dr=Math.max(0,RULES.odb.deductible-a.dedPaid);const d=Math.min(amt,dr);const cp=Math.min(amt-d,RULES.odb.copay);
+  return{plan:r2(amt-d-cp),pat:r2(d+cp),ded:r2(d),copay:r2(cp),coins:0,over:0,cap:0,dedLeft:r2(dr-d),maxLeft:null};}
+ if(pl.kind==='ramq'){const R=RULES.ramq;const dr=Math.max(0,R.monthDed-Math.min(a.monthPaid,R.monthDed));const d=Math.min(amt,dr);const co=(amt-d)*R.coins;let pat=d+co,cap=0;
+  const cl=Math.max(0,Math.min(R.monthMax-a.monthPaid,R.yearMax-a.qcPaid));if(pat>cl){cap=pat-cl;pat=cl;}
+  return{plan:r2(amt-pat),pat:r2(pat),ded:r2(d),copay:0,coins:r2(co),over:0,cap:r2(cap),dedLeft:null,maxLeft:null};}
+ const dr=Math.max(0,(pl.ded||0)-a.dedPaid);const d=Math.min(amt,dr);const rest=amt-d;const co=rest*(1-pl.coins);let plan=rest*pl.coins,over=0,cap=0,maxLeft=null;
+ if(pl.max){const ml=Math.max(0,pl.max-a.maxUsed);if(plan>ml){over=plan-ml;plan=ml;}maxLeft=r2(ml-plan);}
+ let pat=d+co+over;if(pl.qcCap!=null){const cl=Math.max(0,pl.qcCap-a.qcPaid);if(pat>cl){cap=pat-cl;pat=cl;plan+=cap;}}
+ return{plan:r2(plan),pat:r2(pat),ded:r2(d),copay:0,coins:r2(co),over:r2(over),cap:r2(cap),dedLeft:r2(dr-d),maxLeft};}
+function adjud(pt,c,qty,accs){const drug=r2(c.prod.price*qty),fee=RULES.dispFee,total=r2(drug+fee);const steps=[];let rem=total;
+ pt.plans.forEach((pl,i)=>{const v=cover(pl,c);if(v.st==='not_covered'){steps.push({pl,i,skip:true,why:v.why});return;}const x=apply(pl,rem,accs[i]);steps.push({pl,i,...x});rem=x.pat;});
+ return{drug,fee,total,steps,pat:r2(rem),plan:r2(total-rem)};}
+const accOf=(pt,b)=>pt.plans.map(()=>({dedPaid:b.dedPaid||0,maxUsed:b.maxUsed||0,qcPaid:b.qcPaid||0,monthPaid:b.monthPaid||0}));
+function bump(accs,a){a.steps.forEach(s=>{if(s.skip)return;const x=accs[s.i];x.dedPaid+=s.ded;x.maxUsed+=s.plan;x.qcPaid+=s.pat;x.monthPaid+=s.pat;});}
+function annual(pt,c,yr){if(!pt.plans.length)return null;const fl=fills(c.mol,c.ind,yr),accs=accOf(pt,{});let pat=0,plan=0,total=0,units=0;
+ fl.forEach(u=>{accs.forEach(x=>x.monthPaid=0);const a=adjud(pt,c,u,accs);bump(accs,a);pat+=a.pat;plan+=a.plan;total+=a.total;units+=u;});
+ return{pat:r2(pat),plan:r2(plan),total:r2(total),fills:fl.length,units};}
+function srcOf(c,prov){return SRC[c.mol.id+'.'+prov+'.'+c.ind]||SRC[c.mol.id+'.'+prov]||'';}
+function assume(pt,c,qty,missing){const fr=FR(),A=[];
+ A.push(fr?`Prix unitaire ${money(c.prod.price)} × ${qty} + honoraires ${money(RULES.dispFee)} (démo)`:`Unit price ${money(c.prod.price)} × ${qty} + dispensing fee ${money(RULES.dispFee)} (demo values)`);
+ pt.plans.forEach(pl=>{if(pl.kind==='odb')A.push(fr?`PMO : franchise annuelle ${money(RULES.odb.deductible)}, puis jusqu’à ${money(RULES.odb.copay)} par ordonnance (à vérifier)`:`ODB: ${money(RULES.odb.deductible)} annual deductible, then up to ${money(RULES.odb.copay)} co-pay per prescription (verify)`);
+  else if(pl.kind==='ramq'){const R=RULES.ramq;A.push(fr?`RAMQ : franchise mensuelle ${money(R.monthDed)}, coassurance ${R.coins*100} %, contribution maximale ${money(R.monthMax)}/mois et ${money(R.yearMax)}/an (paramètres du 1er juillet 2026 au 30 juin 2027)`:`RAMQ: ${money(R.monthDed)} monthly deductible, ${R.coins*100}% co-insurance, maximum contribution ${money(R.monthMax)}/month and ${money(R.yearMax)}/year (July 1, 2026 to June 30, 2027 parameters)`);}
+  else A.push(fr?`${pl.carrier} : coassurance ${Math.round(pl.coins*100)} %${pl.ded?`, franchise ${money(pl.ded)}`:''}${pl.max?`, plafond ${money(pl.max)}`:''}${pl.qcCap?`, contribution maximale annuelle Québec ${money(pl.qcCap)} (depuis le 1er juillet 2026)`:''} (règles d’assureur fictives)`:`${pl.carrier}: ${Math.round(pl.coins*100)}% co-insurance${pl.ded?`, ${money(pl.ded)} deductible`:''}${pl.max?`, ${money(pl.max)} annual maximum`:''}${pl.qcCap?`, ${money(pl.qcCap)} Quebec annual maximum contribution (from July 1, 2026)`:''} (invented carrier rules)`);});
+ if(pt.plans.length>1)A.push(RULES.cob[I()]);
+ if(missing.length)A.push(fr?'Le montant prévu suppose qu’aucune franchise ni contribution n’a encore été payée et que le plafond annuel n’est pas entamé; la borne basse suppose franchise et plafonds de contribution déjà atteints.':'The expected figure assumes no deductible or contributions paid yet and no annual maximum used; the low end assumes the deductible and any contribution maximum are already met.');
+ A.push(t('ynote'));
+ const prov=pt.plans.some(p=>p.kind==='ramq'||p.prov==='QC')?'QC':'ON';const s=srcOf(c,prov);A.push(s?`${t('srcv')} ${s}`:t('srcu'));
+ return A;}
+function estimate(pt,c,qty){const y=Y();const b={dedPaid:num(y.dedPaid),maxUsed:num(y.maxUsed),qcPaid:num(y.qcPaid),monthPaid:num(y.monthPaid)};
+ if(!pt.plans.length)return{status:'unknown',why:[],auth:[]};
+ const cv=pt.plans.map(p=>cover(p,c)),why=cv.map(v=>v.why);
+ if(cv.every(v=>v.st==='not_covered')){const tot=r2(c.prod.price*qty+RULES.dispFee);return{status:'not_covered',low:tot,exp:tot,high:tot,payer:0,exact:true,missing:[],total:tot,why,auth:[],assumptions:assume(pt,c,qty,[])};}
+ const miss=[];pt.plans.forEach((pl,i)=>{if(cv[i].st==='not_covered')return;if((pl.kind==='odb'||pl.ded)&&b.dedPaid==null)miss.push('dedPaid');if(pl.max&&b.maxUsed==null)miss.push('maxUsed');if((pl.qcCap||pl.kind==='ramq')&&b.qcPaid==null)miss.push('qcPaid');if(pl.kind==='ramq'&&b.monthPaid==null)miss.push('monthPaid');});
+ const mk=fav=>accOf(pt,{dedPaid:b.dedPaid??(fav?1e9:0),maxUsed:b.maxUsed??0,qcPaid:b.qcPaid??(fav?1e9:0),monthPaid:b.monthPaid??(fav?1e9:0)});
+ const best=adjud(pt,c,qty,mk(true)),worst=adjud(pt,c,qty,mk(false)),m=[...new Set(miss)];
+ return{status:'covered_with_restriction',low:best.pat,exp:worst.pat,high:worst.pat,payer:worst.plan,exact:!m.length,missing:m,detail:worst,total:worst.total,why,auth:authNeeded(pt,c),assumptions:assume(pt,c,qty,m)};}
+function pharmacy(pt,c,qty){if(pt.truth.liveCode)return{result:'rejected',code:pt.truth.liveCode,carrier:pt.truth.carrier};
+ if(pt.plans.every(p=>cover(p,c).st==='not_covered'))return{result:'rejected',code:'NC'};
+ const a=adjud(pt,c,qty,accOf(pt,pt.truth));const ref='TC-'+Math.random().toString(36).slice(2,8).toUpperCase();
+ if(authNeeded(pt,c).length)return{result:'rejected',code:'PA',ref,projected:a};
+ return{result:'covered',patient:a.pat,payer:a.plan,detail:a,ref,auth:'SA-'+pt.id.toUpperCase()+'-'+c.mol.id.toUpperCase()};}
+function compare(){const r=st.res,pt=r.pt,ind=r.cx.ind;const list=st.scope==='mol'?prodsFor(r.cx.mol.id):PRODUCTS.filter(p=>M(p.mol).ind[ind]);
+ return list.map(p=>{const m=M(p.mol),c2={mol:m,prod:p,ind},df=defFill(m,ind);return{p,m,df,e:estimate(pt,c2,df.qty),y1:annual(pt,c2,0),y2:annual(pt,c2,1)};})
+  .sort((a,b)=>((a.y1?a.y1.pat:1e12)-(b.y1?b.y1.pat:1e12))||((a.y2?a.y2.pat:1e12)-(b.y2?b.y2.pat:1e12))||a.p.name.localeCompare(b.p.name));}
+
+/* ---------- Pharmacy finder ---------- */
+function search(){const pt=P(),raw=(st.pcIn||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ if(!PC_RE.test(raw)){st.srch[pt.id]={err:true};render();return;}
+ const fsa=raw.slice(0,3),prov=PROV_OF[fsa[0]],c=FSA[fsa],f=st.flt;let excl=0;const res=[];
+ PHARMS.forEach(ph=>{const km=c?Math.round(hav(c,ph.ll)*10)/10:null,inR=km==null||km<=st.rad;
+  if(ph.prov!==pt.prov){if(km!=null&&inR)excl++;return;}
+  if(!inR||(f.partner&&!ph.partner)||(f.cold&&!ph.cold)||(f.fr&&!ph.lang.includes('FR'))||(f.ships&&!ph.ships.includes(pt.prov)))return;res.push({id:ph.id,km});});
+ res.sort((a,b)=>((a.km??1e9)-(b.km??1e9))||phById(a.id).name.localeCompare(phById(b.id).name));
+ st.srch[pt.id]={fsa,prov,known:!!c,res,excl,rad:st.rad,ts:now()};st.pcIn=fsa;
+ log('Clinic staff',`Pharmacy search, FSA ${fsa}, ${c?st.rad+' km':'province-wide'}`,'—',`${res.length} found${excl?`, ${excl} out-of-province hidden`:''}`);render();}
+
+function run(){const pt=P(),c=C(),cx=ctx();if(!c.clinic)return;
+ const e=estimate(pt,cx,st.qty),an={y1:annual(pt,cx,0),y2:annual(pt,cx,1)},ph=selPh();
+ st.res={pt,cx,e,an,qty:st.qty,days:st.days,ph:ph?ph.id:null,ts:now()};st.stale=false;st.live[pt.id]=null;
+ log('Clinic staff',`Estimate ${cx.prod.name} ×${st.qty} (${cx.ind})`,'A',e.status+(e.status==='unknown'?'':e.exact?' (exact)':' (range)'));
+ if(c.pharmacy&&st.bill&&ph&&ph.partner){st.busy=true;const k=pt.plans[0]?planKey(pt.plans[0]):pt.truth.carrier,sw=SWITCH[k]||k;
+  log('Passage Rx agent',`Test claim ${cx.prod.name} ×${st.qty} via ${sw} at ${ph.name}`,'B','Submitted','switch-demo 0.3');render();
+  setTimeout(()=>{const r=pharmacy(pt,cx,st.qty);st.live[pt.id]={...r,sw,ts:now()};st.busy=false;
+   log('Passage Rx agent','Adjudication read','B',r.result+(r.code?' '+r.code:' '+money(r.patient)),'switch-demo 0.3');
+   const o=out();if(o&&o.reconciliation.status==='disagreed')log('System','Difference flagged to clinic','A+B','Δ '+money(o.reconciliation.difference));render();},1800);}
+ else log('System','Live check not run','B',!c.pharmacy?'No pharmacy consent':!st.bill?'Billability not confirmed':!ph?'No pharmacy selected':'Pharmacy not connected for test claims');
+ render();}
+
+const whyTxt=w=>t('why_'+w);
+function covCell(e){if(e.status==='unknown')return t('unknown');const w=e.status==='not_covered'?e.why[0]:e.why.find(x=>!['nl_pub','bios_pol','bios_car','nl_car'].includes(x))||e.why[0];
+ const a=e.status!=='not_covered'&&['eap','exc','pa'].includes(w)?` · ${e.auth.length?t('needed'):t('onfile')}`:'';return`${t(e.status)}<span class="why">${whyTxt(w)}${a}</span>`;}
+
+function out(){const r=st.res;if(!r)return null;const {pt,cx,e,an}=r,lv=st.live[pt.id],ph=phById(r.ph),sr=st.srch[pt.id];
+ let rec={status:'single_path',difference:0};
+ if(lv&&e.status!=='unknown'){if(lv.result==='covered'){const d=r2(lv.patient-e.exp);rec={status:Math.abs(d)<=RULES.tol?'agreed':'disagreed',difference:d};}
+  else rec={status:(lv.code==='PA'&&e.auth.length)||(lv.code==='NC'&&e.status==='not_covered')?'agreed':'disagreed',difference:0};}
+ const A=[],authW=e.auth||[];
+ if(lv&&lv.result==='covered')A.push(t('a_ok'));
+ if(e.status==='not_covered')A.push(t('a_alt'));
+ if(e.why&&e.why.includes('lu')&&e.status!=='not_covered')A.push(t('a_lu'));
+ if(authW.includes('eap'))A.push(t('a_eap'));if(authW.includes('exc'))A.push(t('a_exc'));if(authW.includes('pa'))A.push(t('a_pa'));
+ if(e.status==='unknown')A.push(t('a_add'));
+ if(lv&&lv.result==='rejected'&&!CODES[lv.code])A.push(t('a_code'));
+ if(sr&&sr.prov&&sr.prov!==pt.prov)A.push(t('a_prov'));
+ if(!lv&&!st.busy&&e.status!=='not_covered'){if(!ph)A.push(t('a_pick'));else if(!ph.partner)A.push(t('a_nopart'));else if(!C().pharmacy)A.push(t('a_live'));}
+ if(!lv&&e.missing&&e.missing.length)A.push(t('a_ytd'));
+ A.push(t('a_ph'));
+ const bd=d=>d?{drug_cost:d.drug,dispensing_fee:d.fee,total_claimed:d.total,payers:d.steps.filter(s=>!s.skip).map(s=>({payer:planName(s.pl),paid:s.plan,deductible_applied:s.ded,co_insurance:s.coins,co_pay:s.copay,over_annual_max:s.over,quebec_max_adjustment:s.cap,deductible_remaining_after:s.dedLeft,annual_max_remaining_after:s.maxLeft})),patient_pays:d.pat}:null;
+ const yr=y=>y?{patient_pays:y.pat,plan_pays:y.plan,total_claimed:y.total,fills:y.fills,units:y.units}:null;
+ const alts=compare();const needPkt=authW.length>0||(lv&&lv.code==='PA');
+ return{drug:{din:cx.prod.din,name:cx.prod.name,molecule:cx.mol.inn,drug_class:CLS[cx.mol.cls],product:cx.prod.type==='brand'?'reference':cx.prod.type,strength:cx.mol.unit[0],form:cx.mol.unit[0],qty:r.qty,days_supply:r.days},
+  indication:cx.ind,therapeutic_area:IND[cx.ind][2],patient_province:pt.prov,language:L,
+  payer_order:pt.plans.map((p,i)=>({payer:planName(p)+(p.dependent?' (dependent)':''),role:i?'secondary':'primary',source_version:RULES.version,as_of:RULES.as_of})),
+  coverage_status:e.status,coverage_basis:(e.why||[]).map(w=>S['why_'+w][0]),public_status_source:srcOf(cx,pt.prov)||'demo mapping (unverified)',
+  requires_pa_or_sa:authW.length>0,pa_criteria:needPkt?CRIT[cx.ind].c.map(x=>x[I()]):[],pa_documents:needPkt?CRIT[cx.ind].d.map(x=>x[I()]):[],
+  estimate:e.status==='unknown'?{patient_cost_low:null,patient_cost_expected:null,patient_cost_high:null,payer_share:null,currency:'CAD',exact:false,assumptions:[]}:{patient_cost_low:e.low,patient_cost_expected:e.exp,patient_cost_high:e.high,payer_share:e.payer,currency:'CAD',exact:e.exact,assumptions:e.assumptions||[]},
+  annual_projection:{basis:'rules_estimate',assumes_approval:authW.length>0,year1:yr(an.y1),year2:yr(an.y2)},
+  live_check:lv?{performed:true,result:lv.result,rejection_code:lv.code||'',patient_share:lv.patient??null,payer_share:lv.payer??null,breakdown:bd(lv.detail),projected_after_approval:lv.projected?bd(lv.projected):null,claim_reference:lv.ref||'',switch:lv.sw,pharmacy:ph?ph.name:'',timestamp:lv.ts}:{performed:false,result:'unavailable',rejection_code:'',patient_share:null,timestamp:''},
+  source_authority:lv&&lv.result==='covered'?'live_pharmacy':'rules_estimate',reconciliation:rec,
+  alternatives:alts.filter(a=>a.p.id!==cx.prod.id).map(a=>({product:a.p.name,molecule:a.m.inn,patient_cost_expected:a.e.exp??null,year1_patient_cost:a.y1?a.y1.pat:null,year2_patient_cost:a.y2?a.y2.pat:null,coverage_status:a.e.status})),
+  barriers:[...new Set((e.why||[]).map(w=>S['why_'+w][0]))],next_steps:A,
+  selected_pharmacy:ph?{name:ph.name,area:ph.area[0],partner_live_check:ph.partner,cold_chain:ph.cold,ships_to_home:false,province_licensed:ph.prov===pt.prov}:null,
+  pharmacy_search:sr&&sr.fsa?{fsa:sr.fsa,radius_km:sr.known?sr.rad:null,out_of_province_hidden:sr.excl}:null,
+  pharmacy_options:(sr&&sr.res?sr.res:[]).slice(0,5).map(x=>{const p=phById(x.id);return{name:p.name,distance_km:x.km,ships_to_home:false,cold_chain:p.cold,province_licensed:true,partner_live_check:p.partner};}),
+  disclaimer:`${t('discl')} ${RULES.as_of}; ${t('discl2')}`,data_freshness:{formulary_updated:RULES.as_of,carrier_plan_updated:RULES.as_of,switch_checked_at:lv?lv.ts:''}};}
+const rng=e=>e.exact||e.low===e.high?money(e.exp):money(e.low)+' – '+money(e.high);
+const codeText=c=>CODES[c]?`${c} — ${CODES[c][I()]}`:`${c} — ${t('contact')}`;
+
+/* ---------- Views ---------- */
+function lines(d){if(!d)return'';let h=[[t('drug'),d.drug],[t('fee'),d.fee]].map(([a,b])=>`<div class="ln"><span>${a}</span><span>${money(b)}</span></div>`).join('')+`<div class="ln tot"><span>${t('total')}</span><span>${money(d.total)}</span></div>`;
+ d.steps.forEach((s,i)=>{if(s.skip)return;h+=`<div class="ln"><span>${i?t('sec'):t('prim')} · ${planName(s.pl)}</span><span>−${money(s.plan)}</span></div>`;
+  if(s.ded)h+=`<div class="ln sub2"><span>${t('dedap')}</span><span>${money(s.ded)}</span></div>`;
+  if(s.coins)h+=`<div class="ln sub2"><span>${t('coins')}</span><span>${money(s.coins)}</span></div>`;
+  if(s.copay)h+=`<div class="ln sub2"><span>${t('copay')}</span><span>${money(s.copay)}</span></div>`;
+  if(s.over)h+=`<div class="ln sub2"><span>${t('overmax')}</span><span>${money(s.over)}</span></div>`;
+  if(s.cap)h+=`<div class="ln sub2"><span>${t('capadj')}</span><span>−${money(s.cap)}</span></div>`;
+  if(s.dedLeft!=null&&(s.pl.kind==='odb'||s.pl.ded))h+=`<div class="ln sub2"><span>${t('dedleft')}</span><span>${money(s.dedLeft)}</span></div>`;
+  if(s.maxLeft!=null)h+=`<div class="ln sub2"><span>${t('maxleft')}</span><span>${money(s.maxLeft)}</span></div>`;});
+ return h+`<div class="ln tot"><span>${t('pays')}</span><span>${money(d.pat)}</span></div>`;}
+
+function phCard(x){const ph=phById(x.id),sel=st.pharm[st.pid]===ph.id;
+ return`<div class="ph" aria-current="${sel}"><div class="top"><b>${esc(ph.name)}</b><span class="km">${x.km==null?'':fkm(x.km)}</span></div>
+ <div class="meta">${esc(ph.area[I()])} · ${ph.hours[I()]} · ${ph.lang.join(' / ')}</div>
+ <div class="bdg">${ph.partner?`<span class="bd p">${t('b_partner')}</span>`:`<span class="bd">${t('b_nopart')}</span>`}${ph.cold?`<span class="bd">${t('b_cold')}</span>`:''}${ph.ships.length?`<span class="bd">${t('b_ships')}</span>`:''}</div>
+ ${sel?`<span class="done">✓ ${t('selected')}</span>`:`<button class="btn" type="button" data-ph="${ph.id}">${t('choose')}</button>`}</div>`;}
+
+function vClinic(){const pt=P(),c=C(),y=Y(),r=st.res,o=out(),cx=ctx(),m=cx.mol,ph=selPh(),sr=st.srch[pt.id];
+ const need={ded:pt.plans.some(p=>p.kind==='odb'||p.ded),max:pt.plans.some(p=>p.max),qc:pt.plans.some(p=>p.qcCap||p.kind==='ramq'),mo:pt.plans.some(p=>p.kind==='ramq')};
+ const f1=fills(m,st.ind,0),f2=fills(m,st.ind,1),sum=a=>a.reduce((x,y)=>x+y,0);
+ const inds=Object.keys(IND).filter(k=>IND[k][2]===st.area),prods=prodsFor(m.id);
+ const s1=`<div class="card"><h2><span class="sn ok">✓</span>${t('s1')}</h2><div class="pick">${PATIENTS.map(p=>`<button class="pt" type="button" data-p="${p.id}" aria-pressed="${p.id===st.pid}"><span class="av${IND[p.dx][2]==='derm'?' d':''}">${p.name.split(' ').map(w=>w[0]).join('')}</span><span><b>${p.name} · ${p.prov} · ${p.age}</b><span>${p.note[I()]}</span></span></button>`).join('')}</div>
+ <div class="chips">${pt.plans.length?pt.plans.map((p,i)=>`<span class="chip">${i?t('secondary'):t('primary')}: ${planKey(p)}${(p.auth||[]).length?' · '+t('auth')+' ✓ '+p.auth.map(a=>M(a).inn).join(', '):''}</span>`).join(''):`<span class="chip">${t('unknown')}</span>`}</div></div>`;
+ const s2=`<div class="card"><h2><span class="sn${c.clinic?' ok':''}">${c.clinic?'✓':'2'}</span>${t('s2')}</h2>
+ <label class="sw"><input type="checkbox" id="c1"${c.clinic?' checked':''}><span><b>${t('c1')}</b><small>${t('c1s')}${c.clinic?` · v${c.clinic.ver} · ${hm(c.clinic.ts)}`:''}</small></span></label>
+ <label class="sw"><input type="checkbox" id="c2"${c.pharmacy?' checked':''}${c.clinic?'':' disabled'}><span><b>${t('c2')}</b><small>${t('c2s')}${c.pharmacy?` · v${c.pharmacy.ver} · ${hm(c.pharmacy.ts)}`:''}</small></span></label>
+ ${c.clinic?`<button class="btn" id="wd" type="button" style="margin-top:6px">${t('withdraw')}</button>`:''}</div>`;
+ const s3=`<div class="card"><h2><span class="sn ok">✓</span>${t('s3')}</h2>
+ <div class="seg" role="group" aria-label="area">${Object.keys(AREAS).map(a=>`<button type="button" data-area="${a}" aria-pressed="${st.area===a}">${AREAS[a][I()]}</button>`).join('')}</div>
+ <label class="f" for="ind">${t('ind')}</label><select id="ind">${inds.map(k=>`<option value="${k}"${k===st.ind?' selected':''}>${IND[k][I()]}</option>`).join('')}</select>
+ <label class="f" for="mol">${t('mol')}</label><select id="mol">${molsFor(st.ind).map(x=>`<option value="${x.id}"${x.id===m.id?' selected':''}>${x.inn} · ${CLS[x.cls]} · ${prodsFor(x.id).length>1?prodsFor(x.id).length+' '+(FR()?'produits':'products'):prodsFor(x.id)[0].name}</option>`).join('')}</select>
+ ${prods.length>1?`<label class="f" for="prod">${t('prodl')}</label><select id="prod">${prods.map(p=>`<option value="${p.id}"${p.id===st.prod?' selected':''}>${p.name} — ${tlab(p)}${p.launch?' · '+t('launch'):''}</option>`).join('')}</select>`:''}
+ <div class="hint">${cx.prod.name} · ${tlab(cx.prod)} · ${cx.prod.din} · ${m.unit[I()]}</div>
+ <div class="dose"><b>${t('dosing')}</b>${m.dose[st.ind][I()]}<div class="hint">${t('y1')}: ${sum(f1)} ${t('units')}, ${f1.length} ${t('fills')} · ${t('y2')}: ${sum(f2)} ${t('units')}, ${f2.length} ${t('fills')}</div></div>
+ <div class="row2"><div><label class="f" for="qty">${t('qty')}</label><input type="number" id="qty" min="1" max="12" value="${st.qty}"></div><div><label class="f" for="days">${t('days')}</label><input type="number" id="days" min="1" max="90" value="${st.days}"></div></div>
+ ${pt.plans.length?`<details class="more"${y.dedPaid!==''||y.maxUsed!==''||y.qcPaid!==''||y.monthPaid!==''?' open':''}><summary>${t('ytd')}</summary>
+  ${need.ded?`<label class="f" for="dedPaid">${t('dedpaid')}</label><input type="number" id="dedPaid" min="0" step="0.01" placeholder="${t('blank')}" value="${y.dedPaid}">`:''}
+  ${need.max?`<label class="f" for="maxUsed">${t('maxused')}</label><input type="number" id="maxUsed" min="0" step="0.01" placeholder="${t('blank')}" value="${y.maxUsed}">`:''}
+  ${need.qc?`<label class="f" for="qcPaid">${t('qcpaid')}</label><input type="number" id="qcPaid" min="0" step="0.01" placeholder="${t('blank')}" value="${y.qcPaid}">`:''}
+  ${need.mo?`<label class="f" for="monthPaid">${t('monthpaid')}</label><input type="number" id="monthPaid" min="0" step="0.01" placeholder="${t('blank')}" value="${y.monthPaid}">`:''}</details>`:''}</div>`;
+ let resH='';
+ if(sr&&sr.err)resH=`<div class="note b">${t('pc_err')}</div>`;
+ else if(sr){resH=`${sr.prov!==pt.prov?`<div class="note w">${tf('pc_prov',{X:pn(sr.prov),Y:pn(pt.prov)})}</div>`:''}${!sr.known?`<div class="note m">${tf('pc_unk',{Y:pn(pt.prov)})}</div>`:''}${sr.excl?`<div class="note m">${tf('excl',{n:sr.excl,Y:pn(pt.prov)})}</div>`:''}
+  <div class="hint" style="margin-top:10px"><b>${tf('found',{n:sr.res.length,F:sr.fsa})}</b></div>${sr.res.length?`<div class="phl">${sr.res.map(phCard).join('')}</div>`:`<div class="note m">${t('nores')}</div>`}<p class="hint">${t('phdisc')}</p>`;}
+ const s4=`<div class="card"><h2><span class="sn${ph?' ok':''}">${ph?'✓':'4'}</span>${t('s4')}</h2>
+ ${ph?`<div class="selph"><span><b>${esc(ph.name)}</b><small>${esc(ph.area[I()])} · ${ph.partner?t('live_ok'):t('live_no')}</small></span><span class="done">✓</span></div>`:`<div class="note m" style="margin:0 0 12px">${t('nophar')}</div>`}
+ <div class="srch"><div><label class="f" for="pc">${t('pc')}</label><input type="text" id="pc" maxlength="7" autocomplete="postal-code" placeholder="M5V 3L9" value="${esc(st.pcIn)}"></div>
+ <div><label class="f" for="rad">${t('rad')}</label><select id="rad">${[5,10,25,50,100].map(k=>`<option value="${k}"${k===st.rad?' selected':''}>${k} km</option>`).join('')}</select></div>
+ <button class="btn pri" id="find" type="button">${t('find')}</button></div>
+ <div class="hint">${t('pch')}</div>
+ <div class="fl">${['partner','cold','fr','ships'].map(k=>`<label><input type="checkbox" id="f_${k}"${st.flt[k]?' checked':''}>${t('f_'+k)}</label>`).join('')}</div>${resH}</div>`;
+ const s5=`<div class="card"><button class="btn pri big" id="run" type="button"${c.clinic?'':' disabled'}>${r?t('rerun'):t('run')}</button>${c.clinic?'':`<p class="hint">${t('needc1')}</p>`}</div>`;
+ return`<h1>${t('h1')}</h1><p class="sub">${t('sub')}</p><div class="grid"><div>${s1}${s2}${s3}${s4}${s5}</div><div>${r?receipt(o):`<div class="empty"><b>${t('none')}</b>${t('none2')}</div>`}</div></div>`;}
+
+function receipt(o){const r=st.res,e=r.e,cx=r.cx,lv=st.live[r.pt.id],live=lv&&lv.result==='covered',ph=phById(r.ph);
+ const rail=`<div class="rail"><div class="rs on"><b>✓ ${t('r1')}</b>${t('r1d')}</div>
+  <div class="rs ${st.busy?'run':lv?'on':'no'}"><b>${st.busy?`<span class="pulse">●</span> `:lv?'✓ ':''}${t('r2')}</b>${st.busy?t('sending'):lv?esc(lv.sw):t('off')}</div>
+  <div class="rs ${live?'on':'no'}"><b>${live?'✓ ':''}${t('r3')}</b>${live?hm(lv.ts):'—'}</div></div>`;
+ let fig,stat,detail;
+ if(live){fig=`<div class="fig"><div class="l">${t('pays')}</div><div class="n">${money(lv.patient)}</div><div class="s">${t('exact')}</div></div>`;
+  stat=`<div class="status st-ok"><b>${t('st_ok')}</b>${t('planpays')} ${money(lv.payer)}<p>${o.reconciliation.status==='agreed'?t('match'):`${t('diff')} ${money(Math.abs(o.reconciliation.difference))}`}</p></div>`;detail=lv.detail;}
+ else if(lv&&lv.code==='PA'){fig=`<div class="fig"><div class="l">${t('pays')} · ${t('after')}</div><div class="n">${money(lv.projected.pat)}</div><div class="s">${FR()?'Calculé par la pharmacie':'Calculated by the pharmacy'}</div></div>`;
+  stat=`<div class="status st-warn"><b>${t('st_pa')}</b>${codeText('PA')}<p>${t('st_pa_p')}</p></div>`;detail=lv.projected;}
+ else if(lv&&lv.result==='rejected'&&lv.code!=='NC'){fig=`<div class="fig grey"><div class="l">${t('pays')}</div><div class="n">—</div></div>`;stat=`<div class="status st-bad"><b>${t('st_code')}</b>${esc(codeText(lv.code))}<p>${e.status==='unknown'?t('a_add'):''}</p></div>`;}
+ else if(e.status==='unknown'){fig=`<div class="fig grey"><div class="l">${t('pays')}</div><div class="n">—</div></div>`;stat=`<div class="status st-mute"><b>${t('st_un')}</b><p>${t('st_un_p')}</p></div>`;}
+ else if(e.status==='not_covered'){fig=`<div class="fig"><div class="l">${t('pays')}</div><div class="n">${money(e.exp)}</div><div class="s">${FR()?'Prix complet, aucun remboursement':'Full price, no reimbursement'}</div></div>`;stat=`<div class="status st-bad"><b>${t('st_nc')}</b><p>${[...new Set(e.why)].map(whyTxt).join('. ')}.</p></div>`;}
+ else{fig=`<div class="fig"><div class="l">${t('pays')}${e.auth.length?' · '+t('after'):''}</div><div class="n${rng(e).includes('–')?' rg':''}">${rng(e)}</div><div class="s">${e.exact?t('estx'):t('estr')}</div></div>`;
+  stat=`<div class="status st-warn"><b>${t('covered_with_restriction')}</b>${t('planpays')} ${money(e.payer)}<p>${st.busy?t('sending'):[...new Set(e.why)].map(whyTxt).join(' · ')}</p></div>`;detail=e.exact?e.detail:null;}
+ const an=r.an,yrs=an.y1?`<div class="yrs"><div class="yr"><span>${t('y1d')}</span><b>${money(an.y1.pat)}</b><small>${t('planpays')} ${money(an.y1.plan)} · ${an.y1.fills} ${t('fills')}</small></div><div class="yr"><span>${t('y2d')}</span><b>${money(an.y2.pat)}</b><small>${t('planpays')} ${money(an.y2.plan)} · ${an.y2.fills} ${t('fills')}</small></div></div><p class="hint">${t('ynote')}${e.auth&&e.auth.length?' '+(FR()?'Suppose l’autorisation approuvée.':'Assumes the authorization is approved.'):''}</p>`:'';
+ const rows=compare(),cov=rows.filter(a=>a.y1&&a.e.status!=='not_covered'),min=cov.length?Math.min(...cov.map(a=>a.y1.pat)):null,nMin=cov.filter(a=>a.y1.pat===min).length;
+ const pkt=o.pa_criteria.length?`<h3>${t('packet')} · ${IND[cx.ind][I()]}</h3><div class="pkt"><h4>${t('crit')}</h4><ul class="check">${o.pa_criteria.map(x=>`<li>${x}</li>`).join('')}</ul><h4 style="margin-top:10px">${t('docs')}</h4><ul class="check">${o.pa_documents.map(x=>`<li>${x}</li>`).join('')}</ul><p class="hint">${t('pkt_n')}</p></div>`:'';
+ return`${st.stale?`<div class="stale">${t('stale')}</div>`:''}${rail}<div class="rcpt"><div class="rh"><b>${cx.prod.name} · ${r.qty} × ${cx.mol.unit[I()]} · ${r.days} ${FR()?'jours':'days'}</b><span>${r.pt.name} · ${r.pt.prov} · ${IND[cx.ind][I()]}${lv&&lv.ref?` · ${t('ref')} ${lv.ref}`:''}${live&&lv.auth?` · ${t('auth')} ${lv.auth}`:''}${ph?` · ${t('fillat')} ${esc(ph.name)}`:''}</span></div><div class="rb">
+ <div class="hero">${fig}${stat}</div>${yrs}
+ ${detail?`<div class="lines">${lines(detail)}</div>`:''}
+ <h3>${t('todo')}</h3><div class="acts">${o.next_steps.map(a=>`<div class="act"><i>→</i><span>${a}</span></div>`).join('')}${lv&&lv.code==='PA'?`<button class="btn" id="appr" type="button">${t('approve')}</button>`:''}</div>
+ ${pkt}
+ <h3>${t('cmp')}</h3><div class="tog" role="group"><button type="button" data-scope="ind" aria-pressed="${st.scope==='ind'}">${t('sc_ind')} ${IND[cx.ind][I()].toLowerCase()}</button><button type="button" data-scope="mol" aria-pressed="${st.scope==='mol'}">${t('sc_mol')}: ${cx.mol.inn}</button></div>
+ <div class="scroll"><table class="stack"><thead><tr><th>${t('prodl')}</th><th>${t('cov')}</th><th class="num">${t('perfill')}</th><th class="num">${t('y1')}</th><th class="num">${t('y2')}</th></tr></thead><tbody>
+ ${rows.map(a=>`<tr class="${a.p.id===cx.prod.id?'sel':''}"><td data-l="${t('prodl')}"><span>${a.p.name} <span class="cls">${CLS[a.m.cls]}</span><span class="why">${a.m.inn} · ${tlab(a.p)}${a.p.launch?' · '+t('launch'):''}</span>${min!=null&&a.y1&&a.y1.pat===min&&a.e.status!=='not_covered'?`<span class="tagl">${nMin>1?t('tie'):t('low')}</span>`:''}</span></td>
+ <td data-l="${t('cov')}"><span class="dot" style="background:var(${a.e.status==='not_covered'?'--bad':a.e.status==='unknown'?'--mute':'--warn'})"></span>${covCell(a.e)}</td>
+ <td class="num" data-l="${t('perfill')}">${a.e.exp==null?'—':rng(a.e)}</td><td class="num" data-l="${t('y1')}">${a.y1?money(a.y1.pat):'—'}</td><td class="num" data-l="${t('y2')}">${a.y2?money(a.y2.pat):'—'}</td></tr>`).join('')}</tbody></table></div>
+ <p class="hint">${t('cmpn')}</p>
+ ${e.assumptions?`<details class="more"><summary>${t('how')}</summary><ul style="margin:0;padding-left:18px;font-size:14px;color:var(--mute)">${e.assumptions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></details>`:''}
+ <details class="more"><summary>${t('json')}</summary><p><button class="btn" id="cp" type="button">${t('copy')}</button></p><pre id="js">${esc(JSON.stringify(o,null,2))}</pre></details>
+ <div class="disc">${o.disclaimer}<br>${t('disc_rel')}</div></div></div>`;}
+
+function vPatient(){const o=out();if(!o)return`<h1>${t('patient')}</h1><div class="empty"><b>${t('none')}</b>${t('none2')}</div>`;
+ const fr=FR(),lv=o.live_check,e=o.estimate,y1=o.annual_projection.year1,sp=o.selected_pharmacy;let msg;
+ if(lv.performed&&lv.result==='covered')msg=`${fr?`Bonne nouvelle : votre régime couvre ${o.drug.name}. Votre pharmacie l’a vérifié. Vous paierez`:`Good news: your plan covers ${o.drug.name}, and your pharmacy has checked it. You’ll pay`}<br><span class="amt">${money(lv.patient_share)}</span><br>${fr?`Votre régime paie ${money(lv.payer_share)}.`:`Your plan pays ${money(lv.payer_share)}.`}`;
+ else if(lv.performed&&lv.rejection_code==='PA')msg=`${fr?`Votre régime couvrira ${o.drug.name} une fois l’autorisation obtenue par votre médecin. Selon la pharmacie, vous paierez alors`:`Your plan will cover ${o.drug.name} once your doctor gets it authorized. The pharmacy calculated that you’ll then pay`}<br><span class="amt">${money(lv.projected_after_approval.patient_pays)}</span><br>${fr?'Votre clinique prépare la demande.':'Your clinic is preparing the request.'}`;
+ else if(lv.performed)msg=(fr?'Votre pharmacie a reçu une réponse de votre régime qu’elle doit vérifier : ':'Your pharmacy got a response from your plan that it needs to look into: ')+esc(codeText(lv.rejection_code))+'.';
+ else if(o.coverage_status==='unknown')msg=fr?'Nous ne pouvons pas encore confirmer votre couverture, et nous ne ferons pas de supposition. La clinique doit d’abord ajouter votre régime.':'We can’t confirm your coverage yet, and we won’t guess. The clinic needs to add your plan first.';
+ else if(o.coverage_status==='not_covered')msg=fr?`Votre régime ne couvre pas ${o.drug.name} pour vous. Votre prescripteur peut examiner des options couvertes.`:`Your plan doesn’t cover ${o.drug.name} for you. Your prescriber can review covered options.`;
+ else msg=`${fr?'Selon une estimation (pas encore vérifiée par la pharmacie), vous paierez':'Based on an estimate (not yet checked by the pharmacy), you’ll pay'}<br><span class="amt">${e.exact||e.patient_cost_low===e.patient_cost_high?money(e.patient_cost_expected):money(e.patient_cost_low)+' – '+money(e.patient_cost_high)}</span>`;
+ const yb=y1&&o.coverage_status!=='unknown'?`<div class="bubble"><div class="who">Passage Rx</div>${fr?`Pour votre première année, avec les doses de départ, la projection selon les règles de votre régime est de ${money(y1.patient_pays)} au total. Ce n’est pas encore vérifié.`:`For your first year, including the starting doses, the projection from your plan’s rules is ${money(y1.patient_pays)} in total. This isn’t verified yet.`}</div>`:'';
+ const pb=sp?`<div class="bubble"><div class="who">Passage Rx</div>${fr?`Votre ordonnance peut être exécutée à ${esc(sp.name)} (${esc(sp.area)}).`:`Your prescription can be filled at ${esc(sp.name)} (${esc(sp.area)}).`} ${t('delivery')}</div>`:`<div class="bubble"><div class="who">Passage Rx</div>${t('delivery')}</div>`;
+ return`<h1>${fr?'Ce que le patient voit':'What the patient sees'}</h1><p class="sub">${fr?'Généré uniquement à partir du résultat structuré; aucun montant n’est calculé par l’IA.':'Generated only from the structured result; the AI computes no figures.'}</p>
+ <div class="phone"><div class="bubble"><div class="who">Passage Rx · IA/AI</div>${t('ai')}</div><div class="bubble"><div class="who">Passage Rx</div>${msg}</div>${yb}${pb}
+ <p class="hint">${t('src')}: ${o.source_authority==='live_pharmacy'?t('exact')+' · '+hm(lv.timestamp):RULES.version+' · '+RULES.as_of}. ${o.disclaimer}</p></div>`;}
+
+function vPharm(){const rows=PATIENTS.filter(p=>st.live[p.id]).map(p=>{const l=st.live[p.id];return`<tr><td data-l="${t('s1')}">${p.name}</td><td data-l="${t('switch')}">${esc(l.sw)}</td><td data-l="${t('res')}">${l.result==='covered'?t('covered'):esc(codeText(l.code))}</td><td class="num" data-l="${t('planpays')}">${money(l.payer??null)}</td><td class="num" data-l="${t('pays')}">${money(l.patient??(l.projected?l.projected.pat:null))}</td></tr>`}).join('');
+ return`<h1>${t('pharmacy')}</h1><p class="sub">${FR()?'Console de la pharmacie partenaire : demandes test et réponses d’adjudication.':'Partner pharmacy console: test claims and adjudication responses.'}</p>
+ <div class="card"><label class="sw"><input type="checkbox" id="bill"${st.bill?' checked':''}><span><b>${t('bill')}</b><small>${t('bill_s')}</small></span></label></div>
+ <div class="card"><h2>${t('queue')}</h2>${rows?`<div class="scroll"><table class="stack"><thead><tr><th>${t('s1')}</th><th>${t('switch')}</th><th>${t('res')}</th><th class="num">${t('planpays')}</th><th class="num">${t('pays')}</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="hint">${t('none2')}</p>`}</div>
+ <div class="card"><h2>${t('network')}</h2><div class="scroll"><table class="stack"><thead><tr><th>${t('s4')}</th><th>FSA</th><th>${FR()?'Partenaire':'Partner'}</th><th>${t('f_cold')}</th></tr></thead><tbody>${PHARMS.map(p=>`<tr><td data-l="${t('s4')}">${esc(p.name)}<span class="why">${esc(p.area[I()])} · ${p.prov}</span></td><td data-l="FSA">${p.fsa}</td><td data-l="${FR()?'Partenaire':'Partner'}">${p.partner?'✓':'—'}</td><td data-l="${t('f_cold')}">${p.cold?'✓':'—'}</td></tr>`).join('')}</tbody></table></div></div>
+ <div class="card"><h2>${t('codes')}</h2><table><tbody>${Object.keys(CODES).map(k=>`<tr><td><b>${k}</b></td><td>${CODES[k][I()]}</td></tr>`).join('')}<tr><td><b>${FR()?'autre':'other'}</b></td><td>${FR()?'Affiché tel quel avec « communiquez avec la pharmacie »':'Shown verbatim with “contact the pharmacy”'}</td></tr></tbody></table></div>`;}
+
+function vAudit(){return`<h1>${t('audit')}</h1><div class="card">${st.audit.length?`<div class="scroll"><table class="stack"><thead><tr><th>${t('when')}</th><th>${t('who')}</th><th>${t('what')}</th><th>${t('path')}</th><th>${t('res')}</th><th>${t('ver')}</th></tr></thead><tbody>${st.audit.map(a=>`<tr><td data-l="${t('when')}" style="white-space:nowrap">${a.ts.slice(0,19).replace('T',' ')}</td><td data-l="${t('who')}">${esc(a.who)}</td><td data-l="${t('what')}">${esc(a.what)}</td><td data-l="${t('path')}">${a.path}</td><td data-l="${t('res')}">${esc(a.result)}</td><td data-l="${t('ver')}">${a.ver}</td></tr>`).join('')}</tbody></table></div>`:`<p class="hint">${t('none2')}</p>`}</div>`;}
+
+const V={clinic:vClinic,patient:vPatient,pharmacy:vPharm,audit:vAudit};
+function render(){document.documentElement.lang=L;document.getElementById('tag').textContent=t('tag');document.getElementById('demo').textContent=t('demo');document.getElementById('lang').textContent=FR()?'English':'Français';
+ document.getElementById('tabs').innerHTML=Object.keys(V).map(k=>`<button class="tab" role="tab" data-t="${k}" aria-selected="${st.tab===k}">${t(k)}</button>`).join('');
+ document.getElementById('view').innerHTML=V[st.tab]();}
+const rxChanged=()=>{if(st.res)st.stale=true;render();};
+
+document.addEventListener('click',ev=>{const el=ev.target.closest('button');if(!el)return;
+ if(el.dataset.t){st.tab=el.dataset.t;render();}
+ else if(el.dataset.p){st.pid=el.dataset.p;st.res=null;st.stale=false;setRx(P());const s=st.srch[st.pid];st.pcIn=s&&s.fsa?s.fsa:'';render();}
+ else if(el.dataset.area){if(st.area!==el.dataset.area){st.area=el.dataset.area;const k=Object.keys(IND).find(x=>IND[x][2]===st.area);st.ind=IND[P().dx][2]===st.area?P().dx:k;setMol(molsFor(st.ind)[0].id);st.scope=st.area==='derm'?'ind':'mol';rxChanged();}}
+ else if(el.dataset.scope){st.scope=el.dataset.scope;render();}
+ else if(el.dataset.ph){const ph=phById(el.dataset.ph);if(ph.prov!==P().prov)return;st.pharm[st.pid]=ph.id;log('Clinic staff',`Pharmacy selected: ${ph.name}`,'—',ph.partner?'Partner (live check)':'Not connected');if(st.res)st.stale=true;render();}
+ else if(el.id==='find')search();
+ else if(el.id==='lang'){L=FR()?'en':'fr';if(st.res)st.res.e=estimate(st.res.pt,st.res.cx,st.res.qty);render();}
+ else if(el.id==='run')run();
+ else if(el.id==='appr'){const cx=st.res.cx;P().plans.forEach(p=>{const v=cover(p,cx);if(v.auth&&!authOn(p,cx))(p.auth=p.auth||[]).push(cx.mol.id);});log('Pharmacy staff',`Authorization approval recorded (${cx.mol.inn}, demo)`,'B','Recorded');run();}
+ else if(el.id==='wd'){const c=C();c.clinic=null;c.pharmacy=null;st.live[st.pid]=null;st.res=null;st.ytd[st.pid]=null;log('Patient','Consent withdrawn; coverage data deleted (except records required by law)','—','Deleted');render();}
+ else if(el.id==='cp'){navigator.clipboard.writeText(document.getElementById('js').textContent).then(()=>{el.textContent=t('copied')}).catch(()=>{});}});
+document.addEventListener('input',ev=>{if(ev.target.id==='pc')st.pcIn=ev.target.value;});
+document.addEventListener('keydown',ev=>{if(ev.target.id==='pc'&&ev.key==='Enter'){ev.preventDefault();st.pcIn=ev.target.value;search();}});
+document.addEventListener('change',ev=>{const el=ev.target,c=C(),y=Y();
+ if(el.id==='ind'){st.ind=el.value;setMol(molsFor(st.ind)[0].id);rxChanged();}
+ else if(el.id==='mol'){setMol(el.value);rxChanged();}
+ else if(el.id==='prod'){st.prod=el.value;rxChanged();}
+ else if(el.id==='qty'){st.qty=Math.max(1,Math.min(12,Math.round(+el.value)||1));if(st.res)st.stale=true;}
+ else if(el.id==='days'){st.days=Math.max(1,Math.min(90,Math.round(+el.value)||28));if(st.res)st.stale=true;}
+ else if(el.id==='rad'){st.rad=+el.value;if(st.srch[st.pid]&&st.srch[st.pid].fsa)search();}
+ else if(el.id&&el.id.startsWith('f_')){st.flt[el.id.slice(2)]=el.checked;if(st.srch[st.pid]&&st.srch[st.pid].fsa){st.pcIn=st.srch[st.pid].fsa;search();}else render();}
+ else if(['dedPaid','maxUsed','qcPaid','monthPaid'].includes(el.id))y[el.id]=el.value===''?'':String(Math.max(0,+el.value));
+ else if(el.id==='c1'){c.clinic=el.checked?{ts:now(),ver:'1.1-demo',scope:'clinic_file:coverage_checks'}:null;if(!el.checked)c.pharmacy=null;log('Patient',el.checked?'Clinic-file consent granted (v1.1-demo)':'Clinic-file consent withdrawn','—','Recorded');render();}
+ else if(el.id==='c2'){c.pharmacy=el.checked?{ts:now(),ver:'1.1-demo',scope:'pharmacy_referral:test_claim;no_retention'}:null;log('Patient',el.checked?'Pharmacy-referral consent granted (v1.1-demo)':'Pharmacy-referral consent withdrawn','—','Recorded');render();}
+ else if(el.id==='bill'){st.bill=el.checked;log('Pharmacy staff',el.checked?'Billability confirmation marked on file':'Billability confirmation removed','B','Recorded','switch-demo 0.3');render();}});
+
+/* Demo opens mid-use: Kevin (psoriasis), consents on, pharmacy found by postal code, Skyrizi checked */
+setRx(P());
+st.consent.p6={clinic:{ts:now(),ver:'1.1-demo',scope:'clinic_file:coverage_checks'},pharmacy:{ts:now(),ver:'1.1-demo',scope:'pharmacy_referral:test_claim;no_retention'}};
+log('Patient','Clinic-file and pharmacy-referral consent granted (v1.1-demo)','—','Recorded');
+st.pcIn='M5V';search();st.pharm.p6='ph1';log('Clinic staff','Pharmacy selected: Harbourline Specialty Pharmacy','—','Partner (live check)');
+render();run();
+}
+</script>
+</body>
+</html>
